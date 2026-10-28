@@ -21,6 +21,7 @@ function createHealthController(firebaseConfigured: boolean): HealthController {
         lastCycleStatus: 'never_run',
         consecutiveFailures: 0,
       }),
+      getMarketDataDiagnostics: () => [],
     } as MonitoringRunner,
   );
 }
@@ -121,6 +122,7 @@ describe('AppModule runtime wiring', () => {
             lastCycleStatus: 'never_run',
             consecutiveFailures: 0,
           },
+          marketDataFreshness: [],
         },
       });
     } finally {
