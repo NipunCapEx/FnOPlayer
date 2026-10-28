@@ -298,13 +298,19 @@ export class FirestoreStrategyStore {
   async listAlertsForOwner(
     ownerUid: string,
   ): Promise<Record<string, unknown>[]> {
+    // Filter by owner in Firestore, then sort and cap the small result set in
+    // application code. This avoids requiring a composite ownerUid+createdAt
+    // index just to render the dashboard's recent-alert summary.
     const result = await this.db
       .collection('alerts')
       .where('ownerUid', '==', ownerUid)
-      .orderBy('createdAt', 'desc')
-      .limit(50)
       .get();
-    return result.docs.map((doc) => ({ id: doc.id, ...(doc.data() ?? {}) }));
+    return result.docs
+      .map((doc) => ({ id: doc.id, ...(doc.data() ?? {}) }))
+      .sort((left, right) =>
+        toDate(right.createdAt).getTime() - toDate(left.createdAt).getTime(),
+      )
+      .slice(0, 50);
   }
 
   async registerDeviceToken(
