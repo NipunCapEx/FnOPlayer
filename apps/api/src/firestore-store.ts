@@ -307,8 +307,9 @@ export class FirestoreStrategyStore {
       .get();
     return result.docs
       .map((doc) => ({ id: doc.id, ...(doc.data() ?? {}) }))
-      .sort((left, right) =>
-        toDate(right.createdAt).getTime() - toDate(left.createdAt).getTime(),
+      .sort(
+        (left, right) =>
+          toDate(right.createdAt).getTime() - toDate(left.createdAt).getTime(),
       )
       .slice(0, 50);
   }
