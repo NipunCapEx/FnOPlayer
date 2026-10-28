@@ -609,6 +609,10 @@ export class PollingWorker {
     };
   }
 
+  getMarketDataDiagnostics(now = this.options.now?.() ?? new Date()) {
+    return this.monitor.getMarketDataDiagnostics(now);
+  }
+
   start(): void {
     if (this.timer) return;
     const intervalMs = this.options.intervalMs ?? 5 * 60 * 1000;
