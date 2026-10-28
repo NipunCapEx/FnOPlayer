@@ -20,6 +20,10 @@ export class MonitoringRunner implements OnModuleInit, OnModuleDestroy {
     return this.worker.getDiagnostics();
   }
 
+  getMarketDataDiagnostics() {
+    return this.worker.getMarketDataDiagnostics();
+  }
+
   onModuleInit(): void {
     if (this.firebase?.isConfigured) this.worker.start();
   }

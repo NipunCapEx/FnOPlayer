@@ -88,7 +88,28 @@ export interface MonitorOptions {
 
 const severity = { normal: 0, caution: 1, critical: 2, breached: 3 } as const;
 
+export type MarketDataFreshnessStatus =
+  | 'fresh'
+  | 'stale'
+  | 'invalid'
+  | 'unavailable';
+
+export interface MarketDataFreshnessDiagnostic {
+  symbol: SupportedSymbol;
+  status: MarketDataFreshnessStatus;
+  source: string | null;
+  fetchedAt: string | null;
+  exchangeTimestamp: string | null;
+  lastCheckedAt: string;
+  ageMs: number | null;
+  reason: string | null;
+}
+
 export class RiskMonitor {
+  private readonly marketDataDiagnostics = new Map<
+    SupportedSymbol,
+    Omit<MarketDataFreshnessDiagnostic, 'ageMs'>
+  >();
   private readonly riskEpisodeCache = new Map<string, RiskEpisodeState>();
   private readonly emittedNonRiskSignals = new Set<string>();
   private readonly now: () => Date;
@@ -109,6 +130,27 @@ export class RiskMonitor {
     this.dailyMoveThresholdPercent = options.dailyMoveThresholdPercent ?? 2.5;
   }
 
+  getMarketDataDiagnostics(now = this.now()): MarketDataFreshnessDiagnostic[] {
+    return [...this.marketDataDiagnostics.values()]
+      .map((diagnostic) => ({
+        ...diagnostic,
+        ageMs: diagnostic.fetchedAt
+          ? Math.max(
+              0,
+              now.getTime() - new Date(diagnostic.fetchedAt).getTime(),
+            )
+          : null,
+        status:
+          diagnostic.status === 'fresh' &&
+          diagnostic.fetchedAt !== null &&
+          now.getTime() - new Date(diagnostic.fetchedAt).getTime() >
+            this.maxSnapshotAgeMs
+            ? 'stale'
+            : diagnostic.status,
+      }))
+      .sort((a, b) => a.symbol.localeCompare(b.symbol));
+  }
+
   async runOnce(): Promise<void> {
     const cycleStartedAt = this.now();
     const strategies = (await this.repository.listActiveStrategies()).filter(
@@ -123,6 +165,15 @@ export class RiskMonitor {
       try {
         snapshot = await this.provider.getSnapshot(symbol);
       } catch {
+        this.marketDataDiagnostics.set(symbol, {
+          symbol,
+          status: 'unavailable',
+          source: null,
+          fetchedAt: null,
+          exchangeTimestamp: null,
+          lastCheckedAt: checkedAt.toISOString(),
+          reason: 'market data provider failed',
+        });
         await this.repository.recordUnavailable(
           symbol,
           'market data provider failed',
@@ -136,6 +187,24 @@ export class RiskMonitor {
         maxFutureSkewMs: DEFAULT_FRESHNESS_POLICY.maxFutureSkewMs,
       });
       if (!validation.valid) {
+        this.marketDataDiagnostics.set(symbol, {
+          symbol,
+          status:
+            validation.reason === 'snapshot is stale' ? 'stale' : 'invalid',
+          source: typeof snapshot.source === 'string' ? snapshot.source : null,
+          fetchedAt:
+            snapshot.fetchedAt instanceof Date &&
+            Number.isFinite(snapshot.fetchedAt.getTime())
+              ? snapshot.fetchedAt.toISOString()
+              : null,
+          exchangeTimestamp:
+            snapshot.exchangeTimestamp instanceof Date &&
+            Number.isFinite(snapshot.exchangeTimestamp.getTime())
+              ? snapshot.exchangeTimestamp.toISOString()
+              : null,
+          lastCheckedAt: checkedAt.toISOString(),
+          reason: validation.reason,
+        });
         await this.repository.recordUnavailable(
           symbol,
           validation.reason,
@@ -143,6 +212,15 @@ export class RiskMonitor {
         );
         continue;
       }
+      this.marketDataDiagnostics.set(symbol, {
+        symbol,
+        status: 'fresh',
+        source: snapshot.source,
+        fetchedAt: snapshot.fetchedAt.toISOString(),
+        exchangeTimestamp: snapshot.exchangeTimestamp.toISOString(),
+        lastCheckedAt: checkedAt.toISOString(),
+        reason: null,
+      });
 
       const symbolStrategies = strategies.filter(
         (strategy) => strategy.symbol === symbol,
@@ -537,6 +615,10 @@ export class PollingWorker {
       lastCycleStatus: this.lastCycleStatus,
       consecutiveFailures: this.consecutiveFailures,
     };
+  }
+
+  getMarketDataDiagnostics(now = this.options.now?.() ?? new Date()) {
+    return this.monitor.getMarketDataDiagnostics(now);
   }
 
   start(): void {
