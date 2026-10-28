@@ -121,14 +121,15 @@ export class RiskMonitor {
   >();
   private readonly riskEpisodeCache = new Map<string, RiskEpisodeState>();
   private readonly emittedNonRiskSignals = new Set<string>();
-  private readonly notificationDeliveryDiagnostics: NotificationDeliveryDiagnostics = {
-    lastAttemptAt: null,
-    lastDeliveredAt: null,
-    lastFailureAt: null,
-    consecutiveFailures: 0,
-    totalFailures: 0,
-    lastFailureReason: null,
-  };
+  private readonly notificationDeliveryDiagnostics: NotificationDeliveryDiagnostics =
+    {
+      lastAttemptAt: null,
+      lastDeliveredAt: null,
+      lastFailureAt: null,
+      consecutiveFailures: 0,
+      totalFailures: 0,
+      lastFailureReason: null,
+    };
   private readonly now: () => Date;
   private readonly maxSnapshotAgeMs: number;
   private readonly minimumHistoryCloses: number;
