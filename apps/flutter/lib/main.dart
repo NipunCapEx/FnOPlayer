@@ -916,12 +916,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
               onPressed: widget.onSignOut,
               icon: const Icon(Icons.logout),
             ),
-          const Padding(
-            padding: EdgeInsets.only(right: 16),
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
             child: Center(
               child: Chip(
-                avatar: Icon(Icons.science_outlined, size: 18),
-                label: Text('Prototype'),
+                avatar: Icon(
+                  widget.apiClient == null
+                      ? Icons.science_outlined
+                      : Icons.cloud_done_outlined,
+                  size: 18,
+                ),
+                label: Text(
+                  widget.apiClient == null ? 'Demo mode' : 'API configured',
+                ),
               ),
             ),
           ),
@@ -1147,8 +1154,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 const SizedBox(height: 20),
                 Text(
-                  'Next: connect authenticated API, validated market snapshots, '
-                  'expiry configuration, charts and alert history.',
+                  'Market snapshots refresh every five minutes while this dashboard is open. '
+                  'Background alerts depend on the backend worker and configured notification channels.',
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
               ],
