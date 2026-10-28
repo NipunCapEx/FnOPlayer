@@ -63,7 +63,8 @@ export class HealthController {
         worker: this.monitoringRunner.getDiagnostics(),
         marketDataFreshness: this.monitoringRunner.getMarketDataDiagnostics(),
         // Process-local evidence only; durable outbox state remains in the repository.
-        notificationDelivery: this.monitoringRunner.getNotificationDeliveryDiagnostics(),
+        notificationDelivery:
+          this.monitoringRunner.getNotificationDeliveryDiagnostics(),
       },
     };
   }
