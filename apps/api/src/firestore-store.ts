@@ -306,7 +306,7 @@ export class FirestoreStrategyStore {
       .where('ownerUid', '==', ownerUid)
       .get();
     return result.docs
-      .map((doc) => ({ id: doc.id, ...(doc.data() ?? {}) }))
+      .map((doc): Record<string, unknown> => ({ id: doc.id, ...(doc.data() ?? {}) }))
       .sort(
         (left, right) =>
           toDate(right.createdAt).getTime() - toDate(left.createdAt).getTime(),
