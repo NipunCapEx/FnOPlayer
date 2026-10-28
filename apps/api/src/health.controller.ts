@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Inject } from '@nestjs/common';
 import { FirebaseAdminService } from './firebase-admin.service.js';
 import {
   marketHoursPolicyFromEnvironment,
@@ -9,7 +9,7 @@ import {
 export class HealthController {
   constructor(
     private readonly firebase: FirebaseAdminService,
-    private readonly worker: PollingWorker,
+    @Inject(PollingWorker) private readonly worker: PollingWorker,
   ) {}
 
   @Get('health')
