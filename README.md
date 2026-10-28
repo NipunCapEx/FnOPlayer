@@ -27,6 +27,10 @@ The monitoring worker defaults to weekdays, 09:15–15:30 Asia/Kolkata. Configur
 
 See [F&O Hedging Dashboard implementation plan](docs/architecture/fno-hedging-dashboard.md) for architecture, risk formulas, dependencies and licensing constraints, implementation PRs, acceptance criteria, CI gates, and release checklist.
 
+## Runtime health diagnostics
+
+`GET /health` is a liveness endpoint and can return `status: "ok"` while optional integrations are not configured. Inspect `notificationReadiness` and `monitoringReadiness` before treating the deployment as ready for live alerts. A configured Telegram/FCM transport does not prove that a recipient/device is registered or that a real message was delivered; the endpoint explicitly reports those checks as unverified. Provider connectivity and worker-running state are not probed by this endpoint. Use real-device and live-provider smoke tests from the release runbook before relying on alerts.
+
 ## Important limitations
 
 Free market-data sources can be unofficial, delayed, rate-limited, incomplete, or unavailable. Prices must show their source and timestamps; stale or missing prices must never be represented as current. Validate applicable data-use and redistribution terms before any public deployment. Alerts are decision support, not investment advice or a guarantee of trade profitability.
