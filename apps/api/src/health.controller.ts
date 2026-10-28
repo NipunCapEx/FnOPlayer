@@ -35,8 +35,9 @@ export class HealthController {
       notificationReadiness: {
         telegram: {
           configured: telegramConfigured,
-          readiness:
-            telegramConfigured ? 'transport_configured' : 'not_configured',
+          readiness: telegramConfigured
+            ? 'transport_configured'
+            : 'not_configured',
         },
         androidPush: {
           transportConfigured: firebaseConfigured,
