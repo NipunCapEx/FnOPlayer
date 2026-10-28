@@ -19,6 +19,14 @@ function controller(firebaseConfigured: boolean): HealthController {
         lastRecoveryAt: null,
       }),
       getMarketDataDiagnostics: () => [],
+      getNotificationDeliveryDiagnostics: () => ({
+        lastAttemptAt: null,
+        lastDeliveredAt: null,
+        lastFailureAt: null,
+        consecutiveFailures: 0,
+        totalFailures: 0,
+        lastFailureReason: null,
+      }),
     } as MonitoringRunner,
   );
 }
@@ -67,6 +75,14 @@ describe('HealthController', () => {
         lastRecoveryAt: null,
       },
       marketDataFreshness: [],
+      notificationDelivery: {
+        lastAttemptAt: null,
+        lastDeliveredAt: null,
+        lastFailureAt: null,
+        consecutiveFailures: 0,
+        totalFailures: 0,
+        lastFailureReason: null,
+      },
     });
   });
 
