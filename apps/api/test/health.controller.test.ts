@@ -13,7 +13,9 @@ afterEach(() => {
 });
 
 describe('HealthController', () => {
-  it('keeps liveness healthy while reporting notification delivery as unverified', () => {
+  it(
+    'keeps liveness healthy when notification delivery is unverified',
+    () => {
     vi.stubEnv('TELEGRAM_BOT_TOKEN', 'configured-token');
     vi.stubEnv('TELEGRAM_CHAT_ID', 'configured-chat');
     vi.stubEnv('FIREBASE_ALLOWED_UIDS', 'allowed-user');
@@ -36,13 +38,14 @@ describe('HealthController', () => {
         readiness: 'transport_configured_delivery_unverified',
       },
     });
-    expect(health.monitoringReadiness).toEqual({
-      marketHoursConfigurationValid: true,
-      marketDataAdapter: 'yahoo-finance-prototype',
-      liveProviderConnectivity: 'not_checked',
-      workerRunning: 'not_exposed',
-    });
-  });
+      expect(health.monitoringReadiness).toEqual({
+        marketHoursConfigurationValid: true,
+        marketDataAdapter: 'yahoo-finance-prototype',
+        liveProviderConnectivity: 'not_checked',
+        workerRunning: 'not_exposed',
+      });
+    },
+  );
 
   it('does not claim push readiness when Firebase is not configured', () => {
     const health = controller(false).getHealth();
@@ -57,7 +60,7 @@ describe('HealthController', () => {
     });
   });
 
-  it('reports invalid market-hours configuration without changing liveness status', () => {
+  it('reports invalid market-hours config without failing liveness', () => {
     vi.stubEnv('FOPLAYER_MARKET_OPEN', '25:90');
 
     const health = controller(false).getHealth();
