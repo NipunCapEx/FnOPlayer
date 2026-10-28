@@ -15,6 +15,7 @@ function controller(firebaseConfigured: boolean): HealthController {
         lastCycleStatus: 'never_run',
         consecutiveFailures: 0,
       }),
+      getMarketDataDiagnostics: () => [],
     } as MonitoringRunner,
   );
 }
@@ -59,6 +60,7 @@ describe('HealthController', () => {
         lastCycleStatus: 'never_run',
         consecutiveFailures: 0,
       },
+      marketDataFreshness: [],
     });
   });
 
