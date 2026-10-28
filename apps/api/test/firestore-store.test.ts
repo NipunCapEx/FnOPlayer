@@ -531,6 +531,28 @@ describe('FirestoreStrategyStore — owner isolation', () => {
     expect(dashboard.alerts.map((alert) => alert.id)).toEqual(['own-alert']);
   });
 
+  it('sorts recent dashboard alerts newest-first and caps the result at 50', async () => {
+    const { db, strategies } = createStores();
+    for (let index = 0; index < 55; index += 1) {
+      await db.collection('alerts').doc(`owner-alert-${index}`).set({
+        ownerUid: 'owner-a',
+        createdAt: new Date(Date.UTC(2026, 9, 1, 0, index)),
+        kind: 'caution',
+      });
+    }
+    await db.collection('alerts').doc('foreign-alert').set({
+      ownerUid: 'owner-b',
+      createdAt: new Date('2026-10-31T00:00:00Z'),
+      kind: 'critical',
+    });
+
+    const alerts = await strategies.listAlertsForOwner('owner-a');
+    expect(alerts).toHaveLength(50);
+    expect(alerts[0]).toMatchObject({ id: 'owner-alert-54' });
+    expect(alerts.at(-1)).toMatchObject({ id: 'owner-alert-5' });
+    expect(alerts.some((alert) => alert.id === 'foreign-alert')).toBe(false);
+  });
+
   it('registers device tokens only for strategies owned by the caller', async () => {
     const { db, strategies } = createStores();
     const strategy = await strategies.createForOwner('owner-a', {
