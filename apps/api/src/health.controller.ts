@@ -30,7 +30,7 @@ export class HealthController {
       marketDataAdapter: 'yahoo-finance-prototype',
       telegramConfigured,
       // This describes the configured FCM transport, not end-to-end delivery.
-      // Device-token registration and an actual push delivery are not probed here.
+      // Device-token registration and actual push delivery are not probed here.
       androidPushConfigured: firebaseConfigured,
       notificationReadiness: {
         telegram: {
