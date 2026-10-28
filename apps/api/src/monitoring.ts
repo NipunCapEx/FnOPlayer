@@ -105,6 +105,15 @@ export interface MarketDataFreshnessDiagnostic {
   reason: string | null;
 }
 
+export interface NotificationDeliveryDiagnostics {
+  lastAttemptAt: string | null;
+  lastDeliveredAt: string | null;
+  lastFailureAt: string | null;
+  consecutiveFailures: number;
+  totalFailures: number;
+  lastFailureReason: string | null;
+}
+
 export class RiskMonitor {
   private readonly marketDataDiagnostics = new Map<
     SupportedSymbol,
@@ -112,6 +121,14 @@ export class RiskMonitor {
   >();
   private readonly riskEpisodeCache = new Map<string, RiskEpisodeState>();
   private readonly emittedNonRiskSignals = new Set<string>();
+  private readonly notificationDeliveryDiagnostics: NotificationDeliveryDiagnostics = {
+    lastAttemptAt: null,
+    lastDeliveredAt: null,
+    lastFailureAt: null,
+    consecutiveFailures: 0,
+    totalFailures: 0,
+    lastFailureReason: null,
+  };
   private readonly now: () => Date;
   private readonly maxSnapshotAgeMs: number;
   private readonly minimumHistoryCloses: number;
@@ -128,6 +145,10 @@ export class RiskMonitor {
       options.maxSnapshotAgeMs ?? DEFAULT_FRESHNESS_POLICY.maxAgeMs;
     this.minimumHistoryCloses = options.minimumHistoryCloses ?? 6;
     this.dailyMoveThresholdPercent = options.dailyMoveThresholdPercent ?? 2.5;
+  }
+
+  getNotificationDeliveryDiagnostics(): NotificationDeliveryDiagnostics {
+    return { ...this.notificationDeliveryDiagnostics };
   }
 
   getMarketDataDiagnostics(now = this.now()): MarketDataFreshnessDiagnostic[] {
@@ -272,19 +293,34 @@ export class RiskMonitor {
         );
         continue;
       }
+      const attemptedAt = this.now();
+      this.notificationDeliveryDiagnostics.lastAttemptAt =
+        attemptedAt.toISOString();
       try {
         await this.dispatcher.dispatch(alert);
+        const deliveredAt = this.now();
         await this.repository.markAlertDelivered(
           alert.idempotencyKey,
-          this.now(),
+          deliveredAt,
         );
-      } catch (error) {
-        const reason =
-          error instanceof Error ? error.message : 'unknown delivery error';
+        this.notificationDeliveryDiagnostics.lastDeliveredAt =
+          deliveredAt.toISOString();
+        this.notificationDeliveryDiagnostics.consecutiveFailures = 0;
+        this.notificationDeliveryDiagnostics.lastFailureReason = null;
+      } catch {
+        const failedAt = this.now();
+        this.notificationDeliveryDiagnostics.lastFailureAt =
+          failedAt.toISOString();
+        this.notificationDeliveryDiagnostics.consecutiveFailures += 1;
+        this.notificationDeliveryDiagnostics.totalFailures += 1;
+        // Health diagnostics intentionally expose a stable category, not
+        // provider exception text that may contain identifiers or secrets.
+        this.notificationDeliveryDiagnostics.lastFailureReason =
+          'notification delivery failed';
         await this.repository.recordAlertDeliveryFailure(
           alert.idempotencyKey,
-          reason,
-          this.now(),
+          'notification delivery failed',
+          failedAt,
         );
       }
     }
@@ -628,6 +664,10 @@ export class PollingWorker {
 
   getMarketDataDiagnostics(now = this.options.now?.() ?? new Date()) {
     return this.monitor.getMarketDataDiagnostics(now);
+  }
+
+  getNotificationDeliveryDiagnostics() {
+    return this.monitor.getNotificationDeliveryDiagnostics();
   }
 
   start(): void {
