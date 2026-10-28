@@ -1,11 +1,22 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { HealthController } from '../src/health.controller.js';
 import type { FirebaseAdminService } from '../src/firebase-admin.service.js';
+import type { MonitoringRunner } from '../src/monitoring.runner.js';
 
 function controller(firebaseConfigured: boolean): HealthController {
-  return new HealthController({
-    isConfigured: firebaseConfigured,
-  } as FirebaseAdminService);
+  return new HealthController(
+    { isConfigured: firebaseConfigured } as FirebaseAdminService,
+    {
+      getDiagnostics: () => ({
+        started: firebaseConfigured,
+        running: false,
+        lastCycleStartedAt: null,
+        lastCycleCompletedAt: null,
+        lastCycleStatus: 'never_run',
+        consecutiveFailures: 0,
+      }),
+    } as MonitoringRunner,
+  );
 }
 
 afterEach(() => {
@@ -40,7 +51,14 @@ describe('HealthController', () => {
       marketHoursConfigurationValid: true,
       marketDataAdapter: 'yahoo-finance-prototype',
       liveProviderConnectivity: 'not_checked',
-      workerRunning: 'not_exposed',
+      worker: {
+        started: true,
+        running: false,
+        lastCycleStartedAt: null,
+        lastCycleCompletedAt: null,
+        lastCycleStatus: 'never_run',
+        consecutiveFailures: 0,
+      },
     });
   });
 

@@ -29,7 +29,7 @@ See [F&O Hedging Dashboard implementation plan](docs/architecture/fno-hedging-da
 
 ## Runtime health diagnostics
 
-`GET /health` is a liveness endpoint and can return `status: "ok"` while optional integrations are not configured. Inspect `notificationReadiness` and `monitoringReadiness` before treating the deployment as ready for live alerts. A configured Telegram/FCM transport does not prove that a recipient/device is registered or that a real message was delivered; the endpoint explicitly reports those checks as unverified. Provider connectivity and worker-running state are not probed by this endpoint. Use real-device and live-provider smoke tests from the release runbook before relying on alerts.
+`GET /health` is a liveness endpoint and can return `status: "ok"` while optional integrations are not configured. Inspect `notificationReadiness` and `monitoringReadiness` before treating the deployment as ready for live alerts. A configured Telegram/FCM transport does not prove that a recipient/device is registered or that a real message was delivered; the endpoint explicitly reports those checks as unverified. Provider connectivity is not probed by this endpoint. The worker section reports only this API instance's local timer/cycle state and does not prove that a separate deployment is running. Review the last cycle status and failure streak; use real-device and live-provider smoke tests from the release runbook before relying on alerts.
 
 ## Important limitations
 

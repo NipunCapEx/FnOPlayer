@@ -5,8 +5,25 @@ import {
   isIndianEquityMarketOpen,
   marketHoursPolicyFromEnvironment,
 } from '../src/monitoring.js';
+import type { MonitoringRunner } from '../src/monitoring.runner.js';
 import { FirebaseAdminService } from '../src/firebase-admin.service.js';
 import { HealthController } from '../src/health.controller.js';
+
+function createHealthController(firebaseConfigured: boolean): HealthController {
+  return new HealthController(
+    { isConfigured: firebaseConfigured } as FirebaseAdminService,
+    {
+      getDiagnostics: () => ({
+        started: false,
+        running: false,
+        lastCycleStartedAt: null,
+        lastCycleCompletedAt: null,
+        lastCycleStatus: 'never_run',
+        consecutiveFailures: 0,
+      }),
+    } as MonitoringRunner,
+  );
+}
 
 const keys = [
   'FIREBASE_PROJECT_ID',
@@ -40,9 +57,7 @@ it('reports Telegram configured only for a single allowlisted UID', () => {
   try {
     process.env.TELEGRAM_BOT_TOKEN = 'server-token';
     process.env.TELEGRAM_CHAT_ID = 'private-chat';
-    const controller = new HealthController({
-      isConfigured: false,
-    } as FirebaseAdminService);
+    const controller = createHealthController(false);
 
     process.env.FIREBASE_ALLOWED_UIDS = 'user-a,user-b';
     expect(controller.getHealth().telegramConfigured).toBe(false);
@@ -58,9 +73,7 @@ it('reports Telegram configured only for a single allowlisted UID', () => {
 
 it('reports invalid market-hours configuration without exposing its value', () => {
   process.env.FOPLAYER_MARKET_HOLIDAYS = '2026-02-30';
-  const controller = new HealthController({
-    isConfigured: false,
-  } as FirebaseAdminService);
+  const controller = createHealthController(false);
 
   const health = controller.getHealth();
   expect(health.marketHoursConfigurationValid).toBe(false);
@@ -100,7 +113,14 @@ describe('AppModule runtime wiring', () => {
           marketHoursConfigurationValid: true,
           marketDataAdapter: 'yahoo-finance-prototype',
           liveProviderConnectivity: 'not_checked',
-          workerRunning: 'not_exposed',
+          worker: {
+            started: false,
+            running: false,
+            lastCycleStartedAt: null,
+            lastCycleCompletedAt: null,
+            lastCycleStatus: 'never_run',
+            consecutiveFailures: 0,
+          },
         },
       });
     } finally {
