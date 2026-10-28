@@ -1,15 +1,13 @@
-import { Controller, Get, Inject } from '@nestjs/common';
+import { Controller, Get } from '@nestjs/common';
 import { FirebaseAdminService } from './firebase-admin.service.js';
-import {
-  marketHoursPolicyFromEnvironment,
-  PollingWorker,
-} from './monitoring.js';
+import { marketHoursPolicyFromEnvironment } from './monitoring.js';
+import { MonitoringRunner } from './monitoring.runner.js';
 
 @Controller()
 export class HealthController {
   constructor(
     private readonly firebase: FirebaseAdminService,
-    @Inject(PollingWorker) private readonly worker: PollingWorker,
+    private readonly monitoringRunner: MonitoringRunner,
   ) {}
 
   @Get('health')
@@ -60,7 +58,7 @@ export class HealthController {
         liveProviderConnectivity: 'not_checked',
         // Worker process state is local to this API instance; it does not prove
         // a separate deployment or a live market-data provider is healthy.
-        worker: this.worker.getDiagnostics(),
+        worker: this.monitoringRunner.getDiagnostics(),
       },
     };
   }
