@@ -4,8 +4,8 @@ import { AppModule } from '../src/app.module.js';
 import {
   isIndianEquityMarketOpen,
   marketHoursPolicyFromEnvironment,
-  type PollingWorker,
 } from '../src/monitoring.js';
+import type { MonitoringRunner } from '../src/monitoring.runner.js';
 import { FirebaseAdminService } from '../src/firebase-admin.service.js';
 import { HealthController } from '../src/health.controller.js';
 
