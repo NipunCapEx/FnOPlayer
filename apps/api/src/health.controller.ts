@@ -1,6 +1,9 @@
 import { Controller, Get } from '@nestjs/common';
 import { FirebaseAdminService } from './firebase-admin.service.js';
-import { marketHoursPolicyFromEnvironment, PollingWorker } from './monitoring.js';
+import {
+  marketHoursPolicyFromEnvironment,
+  PollingWorker,
+} from './monitoring.js';
 
 @Controller()
 export class HealthController {
