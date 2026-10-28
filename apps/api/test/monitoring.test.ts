@@ -188,6 +188,56 @@ describe('Snapshot validation rejects stale and invalid market data', () => {
     }
   });
 
+  it('records source timestamps and age for a fresh market snapshot', async () => {
+    const harness = createHarness();
+    await harness.monitor.runOnce();
+
+    expect(harness.monitor.getMarketDataDiagnostics(now)).toEqual([
+      {
+        symbol: 'RELIANCE',
+        status: 'fresh',
+        source: 'deterministic-test-provider',
+        fetchedAt: now.toISOString(),
+        exchangeTimestamp: now.toISOString(),
+        lastCheckedAt: now.toISOString(),
+        ageMs: 0,
+        reason: null,
+      },
+    ]);
+  });
+
+  it('reports stale and unavailable market data without exposing provider errors', async () => {
+    const staleHarness = createHarness();
+    staleHarness.setSnapshot(
+      snapshot({ fetchedAt: new Date(now.getTime() - 11 * 60 * 1000) }),
+    );
+    await staleHarness.monitor.runOnce();
+    expect(staleHarness.monitor.getMarketDataDiagnostics(now)[0]).toMatchObject({
+      symbol: 'RELIANCE',
+      status: 'stale',
+      reason: 'snapshot is stale',
+      ageMs: 11 * 60 * 1000,
+    });
+
+    const unavailableHarness = createHarness();
+    vi.mocked(unavailableHarness.provider.getSnapshot).mockRejectedValueOnce(
+      new Error('secret provider response'),
+    );
+    await unavailableHarness.monitor.runOnce();
+    expect(
+      unavailableHarness.monitor.getMarketDataDiagnostics(now)[0],
+    ).toMatchObject({
+      symbol: 'RELIANCE',
+      status: 'unavailable',
+      reason: 'market data provider failed',
+      source: null,
+      ageMs: null,
+    });
+    expect(
+      JSON.stringify(unavailableHarness.monitor.getMarketDataDiagnostics(now)),
+    ).not.toContain('secret provider response');
+  });
+
   it('rejects stale exchange data even when it was just fetched', () => {
     const staleExchangeTime = new Date(now.getTime() - 11 * 60 * 1000);
     expect(
