@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { HealthController } from '../src/health.controller.js';
 import type { FirebaseAdminService } from '../src/firebase-admin.service.js';
-import type { PollingWorker } from '../src/monitoring.js';
+import type { MonitoringRunner } from '../src/monitoring.runner.js';
 
 function controller(firebaseConfigured: boolean): HealthController {
   return new HealthController(
@@ -15,7 +15,7 @@ function controller(firebaseConfigured: boolean): HealthController {
         lastCycleStatus: 'never_run',
         consecutiveFailures: 0,
       }),
-    } as PollingWorker,
+    } as MonitoringRunner,
   );
 }
 
