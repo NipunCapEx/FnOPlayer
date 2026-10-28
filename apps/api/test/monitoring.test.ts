@@ -544,6 +544,62 @@ describe('PollingWorker', () => {
 
     await worker.tick();
     expect(runOnce).not.toHaveBeenCalled();
+    expect(worker.getDiagnostics()).toMatchObject({
+      started: false,
+      running: false,
+      lastCycleStartedAt: null,
+      lastCycleCompletedAt: null,
+      lastCycleStatus: 'skipped_outside_market_hours',
+      consecutiveFailures: 0,
+    });
+  });
+
+  it('records successful cycle timestamps and clears the failure streak', async () => {
+    const runOnce = vi.fn(async () => {});
+    const times = [
+      new Date('2026-10-20T04:00:00.000Z'),
+      new Date('2026-10-20T04:00:03.000Z'),
+    ];
+    const worker = new PollingWorker({ runOnce } as unknown as RiskMonitor, {
+      now: () => times.shift() ?? new Date('2026-10-20T04:00:03.000Z'),
+      isMonitoringWindow: () => true,
+    });
+
+    await worker.tick();
+
+    expect(worker.getDiagnostics()).toEqual({
+      started: false,
+      running: false,
+      lastCycleStartedAt: '2026-10-20T04:00:00.000Z',
+      lastCycleCompletedAt: '2026-10-20T04:00:03.000Z',
+      lastCycleStatus: 'succeeded',
+      consecutiveFailures: 0,
+    });
+  });
+
+  it('records failed cycles without leaking the error message and resets after recovery', async () => {
+    const runOnce = vi
+      .fn<() => Promise<void>>()
+      .mockRejectedValueOnce(new Error('sensitive provider detail'))
+      .mockResolvedValueOnce(undefined);
+    const worker = new PollingWorker({ runOnce } as unknown as RiskMonitor, {
+      now: () => now,
+      isMonitoringWindow: () => true,
+    });
+
+    await expect(worker.tick()).rejects.toThrow('sensitive provider detail');
+    expect(worker.getDiagnostics()).toMatchObject({
+      running: false,
+      lastCycleStatus: 'failed',
+      consecutiveFailures: 1,
+    });
+
+    await worker.tick();
+    expect(worker.getDiagnostics()).toMatchObject({
+      running: false,
+      lastCycleStatus: 'succeeded',
+      consecutiveFailures: 0,
+    });
   });
 
   it('prevents overlapping poll cycles', async () => {
