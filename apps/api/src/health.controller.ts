@@ -61,6 +61,7 @@ export class HealthController {
         // Worker process state is local to this API instance; it does not prove
         // a separate deployment or a live market-data provider is healthy.
         worker: this.monitoringRunner.getDiagnostics(),
+        marketDataFreshness: this.monitoringRunner.getMarketDataDiagnostics(),
       },
     };
   }
