@@ -212,12 +212,14 @@ describe('Snapshot validation rejects stale and invalid market data', () => {
       snapshot({ fetchedAt: new Date(now.getTime() - 11 * 60 * 1000) }),
     );
     await staleHarness.monitor.runOnce();
-    expect(staleHarness.monitor.getMarketDataDiagnostics(now)[0]).toMatchObject({
-      symbol: 'RELIANCE',
-      status: 'stale',
-      reason: 'snapshot is stale',
-      ageMs: 11 * 60 * 1000,
-    });
+    expect(staleHarness.monitor.getMarketDataDiagnostics(now)[0]).toMatchObject(
+      {
+        symbol: 'RELIANCE',
+        status: 'stale',
+        reason: 'snapshot is stale',
+        ageMs: 11 * 60 * 1000,
+      },
+    );
 
     const unavailableHarness = createHarness();
     vi.mocked(unavailableHarness.provider.getSnapshot).mockRejectedValueOnce(
