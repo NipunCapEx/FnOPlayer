@@ -314,7 +314,8 @@ export class FirestoreStrategyStore {
       )
       .sort(
         (left, right) =>
-          toDate(right.createdAt).getTime() - toDate(left.createdAt).getTime(),
+          toDate(right['createdAt']).getTime() -
+          toDate(left['createdAt']).getTime(),
       )
       .slice(0, 50);
   }
