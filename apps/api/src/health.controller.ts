@@ -1,10 +1,13 @@
 import { Controller, Get } from '@nestjs/common';
 import { FirebaseAdminService } from './firebase-admin.service.js';
-import { marketHoursPolicyFromEnvironment } from './monitoring.js';
+import { marketHoursPolicyFromEnvironment, PollingWorker } from './monitoring.js';
 
 @Controller()
 export class HealthController {
-  constructor(private readonly firebase: FirebaseAdminService) {}
+  constructor(
+    private readonly firebase: FirebaseAdminService,
+    private readonly worker: PollingWorker,
+  ) {}
 
   @Get('health')
   getHealth() {
@@ -52,7 +55,9 @@ export class HealthController {
         marketHoursConfigurationValid,
         marketDataAdapter: 'yahoo-finance-prototype',
         liveProviderConnectivity: 'not_checked',
-        workerRunning: 'not_exposed',
+        // Worker process state is local to this API instance; it does not prove
+        // a separate deployment or a live market-data provider is healthy.
+        worker: this.worker.getDiagnostics(),
       },
     };
   }
