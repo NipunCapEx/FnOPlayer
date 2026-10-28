@@ -603,6 +603,9 @@ describe('PollingWorker', () => {
       lastCycleCompletedAt: null,
       lastCycleStatus: 'skipped_outside_market_hours',
       consecutiveFailures: 0,
+      lastCycleFailureAt: null,
+      lastSuccessfulCycleAt: null,
+      lastRecoveryAt: null,
     });
   });
 
@@ -626,6 +629,9 @@ describe('PollingWorker', () => {
       lastCycleCompletedAt: '2026-10-20T04:00:03.000Z',
       lastCycleStatus: 'succeeded',
       consecutiveFailures: 0,
+      lastCycleFailureAt: null,
+      lastSuccessfulCycleAt: null,
+      lastRecoveryAt: null,
     });
   });
 
@@ -644,6 +650,9 @@ describe('PollingWorker', () => {
       running: false,
       lastCycleStatus: 'failed',
       consecutiveFailures: 1,
+      lastCycleFailureAt: now.toISOString(),
+      lastSuccessfulCycleAt: null,
+      lastRecoveryAt: null,
     });
 
     await worker.tick();
@@ -651,6 +660,9 @@ describe('PollingWorker', () => {
       running: false,
       lastCycleStatus: 'succeeded',
       consecutiveFailures: 0,
+      lastCycleFailureAt: now.toISOString(),
+      lastSuccessfulCycleAt: now.toISOString(),
+      lastRecoveryAt: now.toISOString(),
     });
   });
 
