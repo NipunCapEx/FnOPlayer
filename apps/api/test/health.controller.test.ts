@@ -13,39 +13,36 @@ afterEach(() => {
 });
 
 describe('HealthController', () => {
-  it(
-    'keeps liveness healthy when notification delivery is unverified',
-    () => {
-      vi.stubEnv('TELEGRAM_BOT_TOKEN', 'configured-token');
-      vi.stubEnv('TELEGRAM_CHAT_ID', 'configured-chat');
-      vi.stubEnv('FIREBASE_ALLOWED_UIDS', 'allowed-user');
+  it('keeps liveness healthy when notification delivery is unverified', () => {
+    vi.stubEnv('TELEGRAM_BOT_TOKEN', 'configured-token');
+    vi.stubEnv('TELEGRAM_CHAT_ID', 'configured-chat');
+    vi.stubEnv('FIREBASE_ALLOWED_UIDS', 'allowed-user');
 
-      const health = controller(true).getHealth();
+    const health = controller(true).getHealth();
 
-      expect(health.status).toBe('ok');
-      expect(health.firebaseConfigured).toBe(true);
-      expect(health.telegramConfigured).toBe(true);
-      expect(health.androidPushConfigured).toBe(true);
-      expect(health.notificationReadiness).toEqual({
-        telegram: {
-          configured: true,
-          readiness: 'transport_configured',
-        },
-        androidPush: {
-          transportConfigured: true,
-          deviceRegistration: 'not_checked',
-          delivery: 'not_checked',
-          readiness: 'transport_configured_delivery_unverified',
-        },
-      });
-      expect(health.monitoringReadiness).toEqual({
-        marketHoursConfigurationValid: true,
-        marketDataAdapter: 'yahoo-finance-prototype',
-        liveProviderConnectivity: 'not_checked',
-        workerRunning: 'not_exposed',
-      });
-    },
-  );
+    expect(health.status).toBe('ok');
+    expect(health.firebaseConfigured).toBe(true);
+    expect(health.telegramConfigured).toBe(true);
+    expect(health.androidPushConfigured).toBe(true);
+    expect(health.notificationReadiness).toEqual({
+      telegram: {
+        configured: true,
+        readiness: 'transport_configured',
+      },
+      androidPush: {
+        transportConfigured: true,
+        deviceRegistration: 'not_checked',
+        delivery: 'not_checked',
+        readiness: 'transport_configured_delivery_unverified',
+      },
+    });
+    expect(health.monitoringReadiness).toEqual({
+      marketHoursConfigurationValid: true,
+      marketDataAdapter: 'yahoo-finance-prototype',
+      liveProviderConnectivity: 'not_checked',
+      workerRunning: 'not_exposed',
+    });
+  });
 
   it('does not claim push readiness when Firebase is not configured', () => {
     const health = controller(false).getHealth();
