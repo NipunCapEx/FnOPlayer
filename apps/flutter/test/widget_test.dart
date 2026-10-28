@@ -46,6 +46,30 @@ void main() {
     expect(find.textContaining('google-services.json'), findsOneWidget);
   });
 
+  testWidgets('labels demo and configured API dashboard modes accurately',
+      (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: DashboardScreen()),
+    );
+    expect(find.text('Demo mode'), findsOneWidget);
+    expect(find.text('Prototype'), findsNothing);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: DashboardScreen(
+          apiClient: StrategyApiClient(
+            auth: _UnusedFirebaseAuth(),
+            baseUrl: 'https://api.example.test',
+          ),
+          enablePushNotifications: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('API configured'), findsOneWidget);
+    expect(find.text('Demo mode'), findsNothing);
+  });
+
   test('only active strategies are shown on the dashboard', () {
     final strategies = [
       const UserStrategy(
