@@ -100,7 +100,14 @@ describe('AppModule runtime wiring', () => {
           marketHoursConfigurationValid: true,
           marketDataAdapter: 'yahoo-finance-prototype',
           liveProviderConnectivity: 'not_checked',
-          workerRunning: 'not_exposed',
+          worker: {
+            started: false,
+            running: false,
+            lastCycleStartedAt: null,
+            lastCycleCompletedAt: null,
+            lastCycleStatus: 'never_run',
+            consecutiveFailures: 0,
+          },
         },
       });
     } finally {
