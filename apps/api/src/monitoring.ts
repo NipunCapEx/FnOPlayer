@@ -499,14 +499,45 @@ export interface PollingWorkerOptions {
   onError?: (error: unknown) => void;
 }
 
+export type PollingCycleStatus =
+  | 'never_run'
+  | 'running'
+  | 'succeeded'
+  | 'failed'
+  | 'skipped_outside_market_hours';
+
+export interface PollingWorkerDiagnostics {
+  started: boolean;
+  running: boolean;
+  lastCycleStartedAt: string | null;
+  lastCycleCompletedAt: string | null;
+  lastCycleStatus: PollingCycleStatus;
+  consecutiveFailures: number;
+}
+
 export class PollingWorker {
   private timer: ReturnType<typeof setInterval> | undefined;
   private running = false;
+  private lastCycleStartedAt: string | null = null;
+  private lastCycleCompletedAt: string | null = null;
+  private lastCycleStatus: PollingCycleStatus = 'never_run';
+  private consecutiveFailures = 0;
 
   constructor(
     private readonly monitor: RiskMonitor,
     private readonly options: PollingWorkerOptions = {},
   ) {}
+
+  getDiagnostics(): PollingWorkerDiagnostics {
+    return {
+      started: this.timer !== undefined,
+      running: this.running,
+      lastCycleStartedAt: this.lastCycleStartedAt,
+      lastCycleCompletedAt: this.lastCycleCompletedAt,
+      lastCycleStatus: this.lastCycleStatus,
+      consecutiveFailures: this.consecutiveFailures,
+    };
+  }
 
   start(): void {
     if (this.timer) return;
@@ -531,11 +562,23 @@ export class PollingWorker {
     if (this.running) return;
     const now = this.options.now?.() ?? new Date();
     const isOpen = this.options.isMonitoringWindow ?? isIndianEquityMarketOpen;
-    if (!isOpen(now)) return;
+    if (!isOpen(now)) {
+      this.lastCycleStatus = 'skipped_outside_market_hours';
+      return;
+    }
     this.running = true;
+    this.lastCycleStartedAt = now.toISOString();
+    this.lastCycleStatus = 'running';
     try {
       await this.monitor.runOnce();
+      this.lastCycleStatus = 'succeeded';
+      this.consecutiveFailures = 0;
+    } catch (error) {
+      this.lastCycleStatus = 'failed';
+      this.consecutiveFailures += 1;
+      throw error;
     } finally {
+      this.lastCycleCompletedAt = (this.options.now?.() ?? new Date()).toISOString();
       this.running = false;
     }
   }
