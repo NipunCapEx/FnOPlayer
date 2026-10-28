@@ -84,6 +84,24 @@ describe('AppModule runtime wiring', () => {
         marketDataAdapter: 'yahoo-finance-prototype',
         telegramConfigured: false,
         androidPushConfigured: false,
+        notificationReadiness: {
+          telegram: {
+            configured: false,
+            readiness: 'not_configured',
+          },
+          androidPush: {
+            transportConfigured: false,
+            deviceRegistration: 'not_checked',
+            delivery: 'not_checked',
+            readiness: 'not_configured',
+          },
+        },
+        monitoringReadiness: {
+          marketHoursConfigurationValid: true,
+          marketDataAdapter: 'yahoo-finance-prototype',
+          liveProviderConnectivity: 'not_checked',
+          workerRunning: 'not_exposed',
+        },
       });
     } finally {
       await app.close();
