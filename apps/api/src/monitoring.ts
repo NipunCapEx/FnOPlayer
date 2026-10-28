@@ -671,9 +671,7 @@ export class PollingWorker {
       this.consecutiveFailures += 1;
       throw error;
     } finally {
-      const completedAt = (
-        this.options.now?.() ?? new Date()
-      ).toISOString();
+      const completedAt = (this.options.now?.() ?? new Date()).toISOString();
       this.lastCycleCompletedAt = completedAt;
       if (this.lastCycleStatus === 'failed') {
         this.lastCycleFailureAt = completedAt;
