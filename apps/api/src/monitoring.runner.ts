@@ -9,6 +9,10 @@ export class MonitoringRunner implements OnModuleInit, OnModuleDestroy {
     private readonly worker: PollingWorker,
   ) {}
 
+  getDiagnostics() {
+    return this.worker.getDiagnostics();
+  }
+
   onModuleInit(): void {
     if (this.firebase?.isConfigured) this.worker.start();
   }
