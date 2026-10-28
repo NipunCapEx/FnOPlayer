@@ -630,7 +630,7 @@ describe('PollingWorker', () => {
       lastCycleStatus: 'succeeded',
       consecutiveFailures: 0,
       lastCycleFailureAt: null,
-      lastSuccessfulCycleAt: null,
+      lastSuccessfulCycleAt: '2026-10-20T04:00:03.000Z',
       lastRecoveryAt: null,
     });
   });
