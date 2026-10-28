@@ -6,7 +6,8 @@ Status labels: **Implemented & verified**, **Implemented, verification pending**
 
 | Capability / business risk | Required coverage | Current status | Evidence / next step |
 |---|---|---|---|
-| Runtime health/readiness diagnostics | Health response distinguishes transport configuration from unverified device registration and delivery; malformed market-hours config is surfaced without breaking liveness | Implemented, PR CI pending | `test/health.controller.test.ts`; live provider/FCM/worker smoke tests remain deployment checks |
+| Runtime health/readiness diagnostics | Health response distinguishes transport configuration from unverified device registration and delivery; malformed market-hours config is surfaced without breaking liveness | Implemented, PR CI pending | `test/health.controller.test.ts`; live provider/FCM smoke tests remain deployment checks |
+| Polling worker runtime diagnostics | Health reports local timer state, active cycle, last start/completion/status and consecutive failures without exposing error text | Implemented, PR CI pending | `test/monitoring.test.ts`, `test/health.controller.test.ts`; production worker deployment still needs smoke verification |
 | Entry-relative ±12% boundaries | Unit tests for upper/lower, exact boundary and adjacent values | Implemented & verified | PR 1 CI passed on `e8eb806093ec1c7757c8e1c5dc805e2616962d09` |
 | ±8% caution and ±10% critical severity | Unit tests both directions, threshold precedence | Implemented & verified | PR 1 CI passed on `e8eb806093ec1c7757c8e1c5dc805e2616962d09` |
 | Invalid/missing prices and entries | Unit tests reject non-positive/non-finite values | Implemented & verified | PR 1 CI passed on `e8eb806093ec1c7757c8e1c5dc805e2616962d09` |
