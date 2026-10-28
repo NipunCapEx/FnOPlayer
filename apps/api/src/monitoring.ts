@@ -88,7 +88,11 @@ export interface MonitorOptions {
 
 const severity = { normal: 0, caution: 1, critical: 2, breached: 3 } as const;
 
-export type MarketDataFreshnessStatus = 'fresh' | 'stale' | 'invalid' | 'unavailable';
+export type MarketDataFreshnessStatus =
+  | 'fresh'
+  | 'stale'
+  | 'invalid'
+  | 'unavailable';
 
 export interface MarketDataFreshnessDiagnostic {
   symbol: SupportedSymbol;
@@ -131,7 +135,10 @@ export class RiskMonitor {
       .map((diagnostic) => ({
         ...diagnostic,
         ageMs: diagnostic.fetchedAt
-          ? Math.max(0, now.getTime() - new Date(diagnostic.fetchedAt).getTime())
+          ? Math.max(
+              0,
+              now.getTime() - new Date(diagnostic.fetchedAt).getTime(),
+            )
           : null,
         status:
           diagnostic.status === 'fresh' &&
@@ -182,7 +189,8 @@ export class RiskMonitor {
       if (!validation.valid) {
         this.marketDataDiagnostics.set(symbol, {
           symbol,
-          status: validation.reason === 'snapshot is stale' ? 'stale' : 'invalid',
+          status:
+            validation.reason === 'snapshot is stale' ? 'stale' : 'invalid',
           source: typeof snapshot.source === 'string' ? snapshot.source : null,
           fetchedAt:
             snapshot.fetchedAt instanceof Date &&
