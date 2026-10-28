@@ -425,11 +425,30 @@ describe('RiskMonitor — business outcomes', () => {
     await harness.monitor.runOnce();
     expect(harness.deliveryFailures).toHaveLength(1);
     expect(harness.pending.size).toBe(1);
+    expect(harness.monitor.getNotificationDeliveryDiagnostics()).toEqual({
+      lastAttemptAt: now.toISOString(),
+      lastDeliveredAt: null,
+      lastFailureAt: now.toISOString(),
+      consecutiveFailures: 1,
+      totalFailures: 1,
+      lastFailureReason: 'notification delivery failed',
+    });
 
     await harness.monitor.runOnce();
     expect(harness.dispatcher.dispatch).toHaveBeenCalledTimes(2);
     expect(harness.pending.size).toBe(0);
     expect(harness.delivered.size).toBe(1);
+    expect(harness.monitor.getNotificationDeliveryDiagnostics()).toEqual({
+      lastAttemptAt: now.toISOString(),
+      lastDeliveredAt: now.toISOString(),
+      lastFailureAt: now.toISOString(),
+      consecutiveFailures: 0,
+      totalFailures: 1,
+      lastFailureReason: null,
+    });
+    expect(harness.deliveryFailures[0]?.reason).toBe(
+      'notification delivery failed',
+    );
   });
 
   it('uses the current clock when no clock is injected', async () => {
