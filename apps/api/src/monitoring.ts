@@ -591,6 +591,9 @@ export interface PollingWorkerDiagnostics {
   lastCycleCompletedAt: string | null;
   lastCycleStatus: PollingCycleStatus;
   consecutiveFailures: number;
+  lastCycleFailureAt: string | null;
+  lastSuccessfulCycleAt: string | null;
+  lastRecoveryAt: string | null;
 }
 
 export class PollingWorker {
@@ -600,6 +603,9 @@ export class PollingWorker {
   private lastCycleCompletedAt: string | null = null;
   private lastCycleStatus: PollingCycleStatus = 'never_run';
   private consecutiveFailures = 0;
+  private lastCycleFailureAt: string | null = null;
+  private lastSuccessfulCycleAt: string | null = null;
+  private lastRecoveryAt: string | null = null;
 
   constructor(
     private readonly monitor: RiskMonitor,
@@ -614,6 +620,9 @@ export class PollingWorker {
       lastCycleCompletedAt: this.lastCycleCompletedAt,
       lastCycleStatus: this.lastCycleStatus,
       consecutiveFailures: this.consecutiveFailures,
+      lastCycleFailureAt: this.lastCycleFailureAt,
+      lastSuccessfulCycleAt: this.lastSuccessfulCycleAt,
+      lastRecoveryAt: this.lastRecoveryAt,
     };
   }
 
@@ -651,8 +660,10 @@ export class PollingWorker {
     this.running = true;
     this.lastCycleStartedAt = now.toISOString();
     this.lastCycleStatus = 'running';
+    let recovered = false;
     try {
       await this.monitor.runOnce();
+      recovered = this.consecutiveFailures > 0;
       this.lastCycleStatus = 'succeeded';
       this.consecutiveFailures = 0;
     } catch (error) {
@@ -660,9 +671,14 @@ export class PollingWorker {
       this.consecutiveFailures += 1;
       throw error;
     } finally {
-      this.lastCycleCompletedAt = (
-        this.options.now?.() ?? new Date()
-      ).toISOString();
+      const completedAt = (this.options.now?.() ?? new Date()).toISOString();
+      this.lastCycleCompletedAt = completedAt;
+      if (this.lastCycleStatus === 'failed') {
+        this.lastCycleFailureAt = completedAt;
+      } else if (this.lastCycleStatus === 'succeeded') {
+        this.lastSuccessfulCycleAt = completedAt;
+        if (recovered) this.lastRecoveryAt = completedAt;
+      }
       this.running = false;
     }
   }
