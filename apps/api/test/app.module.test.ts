@@ -21,7 +21,7 @@ function createHealthController(firebaseConfigured: boolean): HealthController {
         lastCycleStatus: 'never_run',
         consecutiveFailures: 0,
       }),
-    } as PollingWorker,
+    } as MonitoringRunner,
   );
 }
 
