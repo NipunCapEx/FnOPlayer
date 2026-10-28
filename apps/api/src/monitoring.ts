@@ -578,7 +578,8 @@ export class PollingWorker {
       this.consecutiveFailures += 1;
       throw error;
     } finally {
-      this.lastCycleCompletedAt = (this.options.now?.() ?? new Date()).toISOString();
+      this.lastCycleCompletedAt =
+        (this.options.now?.() ?? new Date()).toISOString();
       this.running = false;
     }
   }
