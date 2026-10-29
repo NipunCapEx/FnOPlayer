@@ -5,7 +5,7 @@ import { PollingWorker } from '../src/monitoring.js';
 
 describe('MonitoringRunner', () => {
   it('starts polling only when Firebase runtime is configured', () => {
-    const worker = { start: vi.fn(), stop: vi.fn() };
+    const worker = { start: vi.fn(), stop: vi.fn(), stopAndDrain: vi.fn(async () => {}) };
     const firebase = { isConfigured: false } as FirebaseAdminService;
     const runner = new MonitoringRunner(
       firebase,
@@ -14,8 +14,8 @@ describe('MonitoringRunner', () => {
 
     runner.onModuleInit();
     expect(worker.start).not.toHaveBeenCalled();
-    runner.onModuleDestroy();
-    expect(worker.stop).not.toHaveBeenCalled();
+    await runner.onModuleDestroy();
+    expect(worker.stopAndDrain).not.toHaveBeenCalled();
   });
 
   it('starts the worker when Firebase is configured', () => {
@@ -29,6 +29,6 @@ describe('MonitoringRunner', () => {
     runner.onModuleInit();
     expect(worker.start).toHaveBeenCalledOnce();
     runner.onModuleDestroy();
-    expect(worker.stop).toHaveBeenCalledOnce();
+    expect(worker.stopAndDrain).toHaveBeenCalledOnce();
   });
 });
