@@ -1,0 +1,77 @@
+name: Cleanup old GitHub Actions runs
+
+on:
+  schedule:
+    - cron: "17 3 * * 0"
+  workflow_dispatch:
+    inputs:
+      retention_days:
+        description: "Delete completed workflow runs older than this many days"
+        required: true
+        default: "30"
+        type: string
+      dry_run:
+        description: "List eligible runs without deleting them (manual runs default to safe mode)"
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: cleanup-old-action-runs
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    name: Remove completed runs beyond retention
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Find and remove expired workflow runs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RETENTION_DAYS: ${{ inputs.retention_days || '30' }}
+          MANUAL_DRY_RUN: ${{ inputs.dry_run || 'false' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if ! [[ "$RETENTION_DAYS" =~ ^[0-9]+$ ]] || (( RETENTION_DAYS < 7 )); then
+            echo "::error::retention_days must be an integer of at least 7."
+            exit 1
+          fi
+
+          CUTOFF="$(date -u -d "${RETENTION_DAYS} days ago" +%Y-%m-%dT%H:%M:%SZ)"
+          DRY_RUN=false
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" && "$MANUAL_DRY_RUN" == "true" ]]; then
+            DRY_RUN=true
+          fi
+
+          echo "Repository: $GITHUB_REPOSITORY"
+          echo "Retention: $RETENTION_DAYS days"
+          echo "Cutoff (UTC): $CUTOFF"
+          echo "Dry run: $DRY_RUN"
+
+          mapfile -t RUN_IDS < <(
+            CUTOFF="$CUTOFF" gh api --paginate \
+              "repos/$GITHUB_REPOSITORY/actions/runs?per_page=100&status=completed" \
+              --jq '.workflow_runs[] | select(.created_at < env.CUTOFF) | .id'
+          )
+
+          echo "Eligible completed runs: ${#RUN_IDS[@]}"
+          for run_id in "${RUN_IDS[@]}"; do
+            if [[ -z "$run_id" ]]; then
+              continue
+            fi
+            if [[ "$DRY_RUN" == "true" ]]; then
+              echo "DRY RUN: would delete run $run_id"
+            else
+              echo "Deleting completed run $run_id"
+              gh api --method DELETE "repos/$GITHUB_REPOSITORY/actions/runs/$run_id"
+            fi
+          done
+
+          echo "Cleanup finished."
