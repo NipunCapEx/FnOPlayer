@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { ConflictException } from '@nestjs/common';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { assessRisk } from '../src/risk-engine.js';
 import {
   FirestoreMonitoringRepository,
@@ -19,6 +19,10 @@ import { RiskMonitor, type RiskAlert } from '../src/monitoring.js';
 import type { MarketDataProvider, MarketSnapshot } from '../src/market-data.js';
 
 type Data = Record<string, unknown>;
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 class FakeSnapshot implements DocumentSnapshotPort {
   constructor(
@@ -205,6 +209,34 @@ function createStores() {
 }
 
 describe('FirestoreStrategyStore — owner isolation', () => {
+  it('logs sanitized Firestore query failures and rethrows the original error', async () => {
+    const { strategies } = createStores();
+    const firestoreError = Object.assign(
+      new Error('permission denied for query'),
+      { code: 7 },
+    );
+    vi.spyOn(FakeQuery.prototype, 'get').mockRejectedValueOnce(firestoreError);
+    const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+    await expect(strategies.listForOwner('private-owner-uid')).rejects.toBe(
+      firestoreError,
+    );
+
+    expect(log).toHaveBeenCalledOnce();
+    const event = JSON.parse(String(log.mock.calls[0]?.[0])) as Record<
+      string,
+      unknown
+    >;
+    expect(event).toMatchObject({
+      event: 'firestore_operation_failed',
+      operation: 'list_strategies_for_owner',
+      errorName: 'Error',
+      errorCode: 7,
+      errorMessage: 'permission denied for query',
+    });
+    expect(JSON.stringify(event)).not.toContain('private-owner-uid');
+  });
+
   it('scopes strategy reads and updates to the authenticated owner', async () => {
     const { strategies } = createStores();
     const first = await strategies.createForOwner('owner-a', {

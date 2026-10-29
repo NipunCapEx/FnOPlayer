@@ -75,6 +75,23 @@ if (!dashboard || typeof dashboard !== 'object' || Array.isArray(dashboard)) {
   process.exit(1);
 }
 NODE
+
+  echo "Checking authenticated watchlist endpoint (regression check for HTTP 500)..."
+  watchlist_status="$(request /api/strategies "$tmpdir/watchlist.json" \
+    --header "Authorization: Bearer $FOPLAYER_SMOKE_BEARER_TOKEN" \
+    --header 'Accept: application/json')"
+  if [[ "$watchlist_status" != "200" ]]; then
+    echo "::error::Authenticated GET /api/strategies returned HTTP $watchlist_status (expected 200)."
+    exit 1
+  fi
+  node - "$tmpdir/watchlist.json" <<'NODE'
+const fs = require('node:fs');
+const watchlist = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+if (!Array.isArray(watchlist)) {
+  console.error('Authenticated watchlist response is not a JSON array.');
+  process.exit(1);
+}
+NODE
 else
   echo "Authenticated dashboard check skipped; FOPLAYER_SMOKE_BEARER_TOKEN was not supplied."
 fi
