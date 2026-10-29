@@ -37,6 +37,8 @@ jobs:
           test -f docs/architecture/fno-hedging-dashboard.md
           test -f docs/qa/coverage-inventory.md
           test -f docs/release/runbook.md
+      - name: Validate deployment smoke script syntax
+        run: bash -n scripts/release-smoke.sh
       - name: Scan for leaked secrets
         run: |
           set -euo pipefail
