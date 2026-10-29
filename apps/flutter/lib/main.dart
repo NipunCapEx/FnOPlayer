@@ -11,7 +11,6 @@ import 'alert_history.dart';
 import 'notification_registration.dart';
 import 'package:foplayer/strategy_api.dart';
 
-
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   Object? initializationError;
