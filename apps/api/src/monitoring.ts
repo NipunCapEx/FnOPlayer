@@ -49,6 +49,8 @@ export interface RiskEpisodeState {
 
 export interface MonitoringRepository {
   listActiveStrategies(): Promise<Strategy[]>;
+  /** Returns the exchange timestamp persisted for this strategy's last assessment. */
+  getLatestExchangeTimestamp?(strategyId: string): Promise<Date | null>;
   recordAssessment(
     strategyId: string,
     assessment: RiskAssessment,
@@ -248,6 +250,30 @@ export class RiskMonitor {
         (strategy) => strategy.symbol === symbol,
       );
       for (const strategy of symbolStrategies) {
+        const previousExchangeTimestamp =
+          await this.repository.getLatestExchangeTimestamp?.(strategy.id);
+        if (
+          previousExchangeTimestamp &&
+          snapshot.exchangeTimestamp.getTime() <
+            previousExchangeTimestamp.getTime()
+        ) {
+          this.marketDataDiagnostics.set(symbol, {
+            symbol,
+            status: 'invalid',
+            source: snapshot.source,
+            fetchedAt: snapshot.fetchedAt.toISOString(),
+            exchangeTimestamp: snapshot.exchangeTimestamp.toISOString(),
+            lastCheckedAt: checkedAt.toISOString(),
+            reason: 'snapshot is out of order',
+          });
+          await this.repository.recordUnavailable(
+            symbol,
+            'snapshot is out of order',
+            checkedAt,
+          );
+          continue;
+        }
+
         let assessment: RiskAssessment;
         try {
           assessment = assessRisk({
