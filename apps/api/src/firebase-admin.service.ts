@@ -73,7 +73,10 @@ export class FirebaseAdminService implements OnModuleInit {
         'Firebase Admin is not configured for this environment',
       );
     }
-    return getFirestore(this.app) as unknown as FirestorePort;
+    const databaseId = process.env.FIRESTORE_DATABASE_ID?.trim();
+    return (databaseId
+      ? getFirestore(this.app, databaseId)
+      : getFirestore(this.app)) as unknown as FirestorePort;
   }
 
   async getAccessToken(): Promise<string> {
