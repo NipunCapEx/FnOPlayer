@@ -24,7 +24,6 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-
 class FakeSnapshot implements DocumentSnapshotPort {
   constructor(
     readonly id: string,
