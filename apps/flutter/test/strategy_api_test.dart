@@ -8,7 +8,8 @@ import 'package:foplayer/strategy_api.dart';
 
 void main() {
   group('StrategyApiClient strategy workflows', () {
-    test('creates a strategy with dates, thresholds and notification preference',
+    test(
+        'creates a strategy with dates, thresholds and notification preference',
         () async {
       late http.Request captured;
       final client = StrategyApiClient(
@@ -97,7 +98,8 @@ void main() {
       );
 
       expect(captured.method, 'PATCH');
-      expect(captured.url.toString(), contains('/api/strategies/id%2Fwith%20space'));
+      expect(captured.url.toString(),
+          contains('/api/strategies/id%2Fwith%20space'));
       expect(jsonDecode(captured.body), {
         'entryPrice': 1300,
         'active': false,
@@ -232,8 +234,7 @@ class _FakeFirebaseAuth implements FirebaseAuth {
 
 class _FakeUser implements User {
   @override
-  Future<String?> getIdToken([bool forceRefresh = false]) async =>
-      'test-token';
+  Future<String?> getIdToken([bool forceRefresh = false]) async => 'test-token';
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
