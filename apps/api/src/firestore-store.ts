@@ -274,40 +274,55 @@ export class FirestoreStrategyStore {
     snapshots: DashboardSnapshot[];
     alerts: Record<string, unknown>[];
   }> {
-    const strategies = await this.listForOwner(ownerUid);
-    const snapshots = (
-      await Promise.all(
-        strategies.map(async (strategy) => {
-          const doc = await this.db
-            .collection('strategySnapshots')
-            .doc(strategy.id)
-            .get();
-          const data = doc.data();
-          if (!doc.exists || !data) return null;
-          return {
-            strategyId: strategy.id,
-            assessment: data.assessment as RiskAssessment,
-            source: String(data.source ?? 'unknown'),
-            exchangeTimestamp: toDate(data.exchangeTimestamp),
-            fetchedAt: toDate(data.fetchedAt),
-            recordedAt: toDate(data.recordedAt),
-            historicalCloses: Array.isArray(data.historicalCloses)
-              ? data.historicalCloses
-                  .filter(
-                    (value): value is number =>
-                      typeof value === 'number' &&
-                      Number.isFinite(value) &&
-                      value > 0,
-                  )
-                  .slice(-30)
-              : [],
-          };
-        }),
-      )
-    ).filter((value): value is DashboardSnapshot => value !== null);
+    let stage = 'list_strategies';
+    try {
+      const strategies = await this.listForOwner(ownerUid);
+      stage = 'load_strategy_snapshots';
+      const snapshots = (
+        await Promise.all(
+          strategies.map(async (strategy) => {
+            const doc = await this.db
+              .collection('strategySnapshots')
+              .doc(strategy.id)
+              .get();
+            const data = doc.data();
+            if (!doc.exists || !data) return null;
+            return {
+              strategyId: strategy.id,
+              assessment: data.assessment as RiskAssessment,
+              source: String(data.source ?? 'unknown'),
+              exchangeTimestamp: toDate(data.exchangeTimestamp),
+              fetchedAt: toDate(data.fetchedAt),
+              recordedAt: toDate(data.recordedAt),
+              historicalCloses: Array.isArray(data.historicalCloses)
+                ? data.historicalCloses
+                    .filter(
+                      (value): value is number =>
+                        typeof value === 'number' &&
+                        Number.isFinite(value) &&
+                        value > 0,
+                    )
+                    .slice(-30)
+                : [],
+            };
+          }),
+        )
+      ).filter((value): value is DashboardSnapshot => value !== null);
 
-    const alerts = await this.listAlertsForOwner(ownerUid);
-    return { strategies, snapshots, alerts };
+      stage = 'list_recent_alerts';
+      const alerts = await this.listAlertsForOwner(ownerUid);
+      return { strategies, snapshots, alerts };
+    } catch (error) {
+      console.error(
+        JSON.stringify({
+          event: 'firestore_operation_failed',
+          operation: 'get_dashboard',
+          stage,
+          ...describeFirestoreError(error),
+        }),
+      );
+      throw error;
+    }
   }
 
   async listAlertsForOwner(
