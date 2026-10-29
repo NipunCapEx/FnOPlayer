@@ -4,8 +4,12 @@ import { MonitoringRunner } from '../src/monitoring.runner.js';
 import { PollingWorker } from '../src/monitoring.js';
 
 describe('MonitoringRunner', () => {
-  it('starts polling only when Firebase runtime is configured', () => {
-    const worker = { start: vi.fn(), stop: vi.fn(), stopAndDrain: vi.fn(async () => {}) };
+  it('starts polling only when Firebase runtime is configured', async () => {
+    const worker = {
+      start: vi.fn(),
+      stop: vi.fn(),
+      stopAndDrain: vi.fn(async () => {}),
+    };
     const firebase = { isConfigured: false } as FirebaseAdminService;
     const runner = new MonitoringRunner(
       firebase,
@@ -18,8 +22,12 @@ describe('MonitoringRunner', () => {
     expect(worker.stopAndDrain).not.toHaveBeenCalled();
   });
 
-  it('starts the worker when Firebase is configured', () => {
-    const worker = { start: vi.fn(), stop: vi.fn() };
+  it('starts the worker when Firebase is configured', async () => {
+    const worker = {
+      start: vi.fn(),
+      stop: vi.fn(),
+      stopAndDrain: vi.fn(async () => {}),
+    };
     const firebase = { isConfigured: true } as FirebaseAdminService;
     const runner = new MonitoringRunner(
       firebase,
@@ -28,7 +36,7 @@ describe('MonitoringRunner', () => {
 
     runner.onModuleInit();
     expect(worker.start).toHaveBeenCalledOnce();
-    runner.onModuleDestroy();
+    await runner.onModuleDestroy();
     expect(worker.stopAndDrain).toHaveBeenCalledOnce();
   });
 });
