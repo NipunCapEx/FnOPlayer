@@ -62,13 +62,28 @@ export class FirestoreStrategyStore {
   constructor(private readonly firebase: FirebaseAdminService) {}
 
   async listForOwner(ownerUid: string): Promise<StrategyRecord[]> {
-    const result = await this.db
-      .collection('strategies')
-      .where('ownerUid', '==', ownerUid)
-      .get();
-    return result.docs
-      .map((doc) => toStrategyRecord(doc))
-      .filter((value): value is StrategyRecord => value !== null);
+    try {
+      const result = await this.db
+        .collection('strategies')
+        .where('ownerUid', '==', ownerUid)
+        .get();
+      return result.docs
+        .map((doc) => toStrategyRecord(doc))
+        .filter((value): value is StrategyRecord => value !== null);
+    } catch (error) {
+      // Do not log the UID, authorization header, document contents, or service
+      // account material. Log only the operation and sanitized SDK error fields
+      // so a deployed Firestore failure can be diagnosed from runtime logs.
+      const details = describeFirestoreError(error);
+      console.error(
+        JSON.stringify({
+          event: 'firestore_operation_failed',
+          operation: 'list_strategies_for_owner',
+          ...details,
+        }),
+      );
+      throw error;
+    }
   }
 
   async createForOwner(
@@ -777,4 +792,35 @@ function deliveryTargetDocumentId(
 
 function alertDocumentId(idempotencyKey: string): string {
   return createHash('sha256').update(idempotencyKey).digest('hex');
+}
+
+function describeFirestoreError(error: unknown): {
+  errorName: string;
+  errorCode: string | number | null;
+  errorMessage: string;
+} {
+  if (!error || typeof error !== 'object') {
+    return {
+      errorName: 'UnknownError',
+      errorCode: null,
+      errorMessage: String(error).slice(0, 300),
+    };
+  }
+  const value = error as {
+    name?: unknown;
+    code?: unknown;
+    message?: unknown;
+  };
+  return {
+    errorName:
+      typeof value.name === 'string' ? value.name.slice(0, 80) : 'Error',
+    errorCode:
+      typeof value.code === 'string' || typeof value.code === 'number'
+        ? value.code
+        : null,
+    errorMessage:
+      typeof value.message === 'string'
+        ? value.message.replace(/(?:Bearer\s+)\S+/gi, 'Bearer [redacted]').slice(0, 300)
+        : 'No error message provided',
+  };
 }
