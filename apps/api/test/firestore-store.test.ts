@@ -534,11 +534,14 @@ describe('FirestoreStrategyStore — owner isolation', () => {
   it('sorts recent dashboard alerts newest-first and caps the result at 50', async () => {
     const { db, strategies } = createStores();
     for (let index = 0; index < 55; index += 1) {
-      await db.collection('alerts').doc(`owner-alert-${index}`).set({
-        ownerUid: 'owner-a',
-        createdAt: new Date(Date.UTC(2026, 9, 1, 0, index)),
-        kind: 'caution',
-      });
+      await db
+        .collection('alerts')
+        .doc(`owner-alert-${index}`)
+        .set({
+          ownerUid: 'owner-a',
+          createdAt: new Date(Date.UTC(2026, 9, 1, 0, index)),
+          kind: 'caution',
+        });
     }
     await db.collection('alerts').doc('foreign-alert').set({
       ownerUid: 'owner-b',
