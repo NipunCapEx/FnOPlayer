@@ -23,6 +23,10 @@ The Flutter prototype mode uses clearly labelled demo market-price fixtures. The
 
 The API uses the project's default Firestore database unless `FIRESTORE_DATABASE_ID` is set. If the project's data lives in a named Firestore database, set this Render environment variable to the exact database ID shown in Firebase Console → Firestore. Keep `FIREBASE_PROJECT_ID` pointed at the same Firebase project. Do not set a guessed database ID: an incorrect or nonexistent database can cause Firestore gRPC `5 NOT_FOUND` errors. Changing this setting selects a database; it does not migrate or copy existing data.
 
+## Market-data provider configuration
+
+The API's Yahoo Finance chart adapter defaults to `https://query1.finance.yahoo.com/v8/finance/chart`. On the Render API service, optionally set `FOPLAYER_YAHOO_CHART_BASE_URL` to an HTTPS chart endpoint base URL (without a symbol or query string); the adapter appends the encoded NSE ticker and `range`/`interval` parameters. Keep the default unless intentionally using a compatible endpoint. `FOPLAYER_MARKET_DATA_TIMEOUT_MS` optionally sets the per-request timeout in milliseconds (100–60000); the default is 10000 ms. These settings require a redeploy to take effect. The Yahoo adapter is unofficial and may be blocked, rate-limited, or return incomplete data; a successful HTTP response alone does not establish that a usable quote was returned. Never add credentials to the URL or commit provider secrets.
+
 ## Market-hours configuration
 
 The monitoring worker defaults to weekdays, 09:15–15:30 Asia/Kolkata. Configure an exchange holiday list with `FOPLAYER_MARKET_HOLIDAYS=YYYY-MM-DD,YYYY-MM-DD`, adjust the regular session with `FOPLAYER_MARKET_OPEN=09:15` and `FOPLAYER_MARKET_CLOSE=15:30`, and define one-off sessions with `FOPLAYER_MARKET_SPECIAL_SESSIONS='{"2026-11-08":{"open":"18:00","close":"19:00"}}'`. Special sessions override the normal weekday/holiday gate for that date; keep the holiday list aligned with official exchange circulars. Invalid session times fail closed. These settings configure the polling window but do not make the upstream market-data provider official or guarantee its availability.
