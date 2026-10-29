@@ -4,6 +4,8 @@
 - All code changes go through a PR from a dedicated branch; never commit directly to `master`.
 - Required CI checks must pass on the exact PR head before merge.
 - After merge, verify the default-branch CI run and record the commit and run URL in the QA checkpoint.
+- A successful push to `master` automatically triggers a signed Android release build and uploads the resulting AAB to the Google Play **internal testing** track after the exact commit receives the successful `Required CI summary` status.
+- Pull requests and feature branches do not publish to Google Play. Manual Android Release runs retain a `publish` opt-in.
 - Do not release a market-data or alerting change solely because the build passes; verify data freshness and risk behaviour.
 - Do not claim real-time data unless the selected provider's timestamp and service terms substantiate that claim.
 
@@ -23,6 +25,15 @@
 - Configure `FOPLAYER_MARKET_SPECIAL_SESSIONS` as a JSON object keyed by ISO date, with each value containing `open` and `close` in 24-hour `HH:MM` IST time (for example, `{"2026-10-24":{"open":"18:00","close":"19:00"}}`). This supports official special sessions such as Muhurat trading. Invalid JSON, dates, or times fail closed; keep this list current from official exchange notices.
 - Never embed privileged credentials in Flutter web/mobile assets or commit them to source control.
 - Apply least privilege and review Firebase rules before enabling production traffic.
+
+## Automated Android internal testing release
+Every push to `master` starts the Android Release workflow. It waits for the `Required CI summary` commit status for that exact SHA, refuses to publish when the status fails or times out, validates release configuration, signs APK/AAB with the configured upload key, verifies fingerprints/artifacts, and uploads the AAB to the internal testing track. The workflow is serialized to reduce overlapping uploads.
+
+Required GitHub repository configuration:
+- Secrets: `FIREBASE_GOOGLE_SERVICES_JSON`, `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`, `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`.
+- Variables: `ANDROID_APPLICATION_ID` (normally `com.nipun.finance.fno`) and `FOPLAYER_API_BASE_URL` (HTTPS).
+
+The Play service account must have access to the app in Play Console and permission to manage releases on the internal testing track. GitHub Actions cannot configure Google Play permissions or create the credentials; verify these once in the respective consoles. If configuration is missing/invalid, the workflow must fail visibly and the AAB will not be published.
 
 ## Release validation
 When the relevant capabilities exist:
@@ -45,7 +56,6 @@ When the relevant capabilities exist:
 
 ## Current release state
 The MVP is not yet release-ready. Do not deploy for real trading use until the backend, authentication, data quality controls, client, notification adapters, CI tests and operational checks are implemented and verified.
-
 
 ## Firebase Google Sign-In SHA diagnostics
 
