@@ -30,19 +30,27 @@ function chartResponse(input: {
 
 describe('YahooChartProvider — provider contract', () => {
   it('uses a configurable HTTPS Yahoo chart base URL and request timeout', async () => {
-    const request = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
-      expect(init?.signal).toBeDefined();
-      return chartResponse({
-        price: 100,
-        previousClose: 98,
-        timestamp: Math.floor(now.getTime() / 1000),
-        closes: String(url).includes('interval=5m') ? [99, 100] : [97, 98, 99, 100],
-      });
-    });
-    const provider = new YahooChartProvider(request as typeof fetch, () => now, {
-      baseUrl: 'https://example.test/custom/chart/',
-      timeoutMs: 2500,
-    });
+    const request = vi.fn(
+      async (url: RequestInfo | URL, init?: RequestInit) => {
+        expect(init?.signal).toBeDefined();
+        return chartResponse({
+          price: 100,
+          previousClose: 98,
+          timestamp: Math.floor(now.getTime() / 1000),
+          closes: String(url).includes('interval=5m')
+            ? [99, 100]
+            : [97, 98, 99, 100],
+        });
+      },
+    );
+    const provider = new YahooChartProvider(
+      request as typeof fetch,
+      () => now,
+      {
+        baseUrl: 'https://example.test/custom/chart/',
+        timeoutMs: 2500,
+      },
+    );
 
     await provider.getSnapshot('RELIANCE');
 
