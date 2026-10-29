@@ -1,9 +1,15 @@
 import { ServiceUnavailableException } from '@nestjs/common';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { getFirestore } from 'firebase-admin/firestore';
+
+vi.mock('firebase-admin/firestore', () => ({
+  getFirestore: vi.fn(() => ({ collection: vi.fn() })),
+}));
 import { FirebaseAdminService } from '../src/firebase-admin.service.js';
 
 const environmentKeys = [
   'FIREBASE_PROJECT_ID',
+  'FIRESTORE_DATABASE_ID',
   'FIREBASE_SERVICE_ACCOUNT_JSON',
   'GOOGLE_APPLICATION_CREDENTIALS',
   'GOOGLE_CLOUD_PROJECT',
@@ -32,6 +38,22 @@ describe('FirebaseAdminService', () => {
     expect(() => service.firestore).toThrow(ServiceUnavailableException);
     await expect(service.getAccessToken()).rejects.toBeInstanceOf(
       ServiceUnavailableException,
+    );
+  });
+
+  it('selects the configured named Firestore database', () => {
+    for (const key of environmentKeys) delete process.env[key];
+    process.env.FIREBASE_PROJECT_ID = 'test-project';
+    process.env.GOOGLE_APPLICATION_CREDENTIALS = '/not-read-by-this-test.json';
+    process.env.FIRESTORE_DATABASE_ID = 'market-data-db';
+
+    const service = new FirebaseAdminService();
+    service.onModuleInit();
+    service.firestore;
+
+    expect(getFirestore).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'foplayer-api' }),
+      'market-data-db',
     );
   });
 
