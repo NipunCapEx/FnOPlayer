@@ -21,7 +21,7 @@ concurrency:
 jobs:
   release:
     name: Build signed APK and Play Store App Bundle
-    # Publish only commits pushed to master after the commit's full CI summary succeeds.
+    # Publish master commits only after all required CI check-runs for that exact SHA succeed.
     # Manual runs retain the existing opt-in publication behavior.
     if: ${{ github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/master' }}
     runs-on: ubuntu-latest
@@ -36,7 +36,7 @@ jobs:
         with:
           ref: ${{ github.sha }}
 
-      - name: Wait for required CI summary on this exact commit
+      - name: Wait for required CI checks on this exact commit
         if: ${{ github.event_name == 'push' }}
         env:
           GH_TOKEN: ${{ github.token }}
@@ -46,19 +46,38 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          required_checks=(
+            "Repository and secret hygiene"
+            "Backend - typecheck, tests and coverage"
+            "Flutter - analyze, tests and web build"
+          )
           for attempt in $(seq 1 60); do
-            STATUS=$(gh api "repos/$GH_REPO/commits/$COMMIT_SHA/status" --jq '[.statuses[] | select(.context == "Required CI summary")][0].state // "pending"')
-            echo "Required CI summary for $COMMIT_SHA: $STATUS (attempt $attempt/60)"
-            if [ "$STATUS" = "success" ]; then
+            checks_json=$(gh api "repos/$GH_REPO/commits/$COMMIT_SHA/check-runs?per_page=100")
+            all_success=true
+            for check_name in "${required_checks[@]}"; do
+              result=$(printf '%s' "$checks_json" | jq -r --arg name "$check_name" '
+                [.check_runs[] | select(.name == $name)] | last |
+                if . == null then "missing"
+                elif .status != "completed" then "pending"
+                elif .conclusion != "success" then "failure"
+                else "success" end
+              ')
+              echo "$check_name for $COMMIT_SHA: $result (attempt $attempt/60)"
+              if [ "$result" = "failure" ]; then
+                echo "::error::Required check '$check_name' failed; refusing to publish."
+                exit 1
+              fi
+              if [ "$result" != "success" ]; then
+                all_success=false
+              fi
+            done
+            if [ "$all_success" = "true" ]; then
+              echo "All required CI checks passed for $COMMIT_SHA."
               exit 0
-            fi
-            if [ "$STATUS" = "failure" ] || [ "$STATUS" = "error" ]; then
-              echo "::error::Required CI summary failed; refusing to publish this commit."
-              exit 1
             fi
             sleep 15
           done
-          echo "::error::Timed out waiting for Required CI summary; refusing to publish."
+          echo "::error::Timed out waiting for required CI checks; refusing to publish."
           exit 1
 
       - name: Set up Java
