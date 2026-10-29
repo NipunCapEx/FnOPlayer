@@ -543,11 +543,14 @@ describe('FirestoreStrategyStore — owner isolation', () => {
           kind: 'caution',
         });
     }
-    await db.collection('alerts').doc('foreign-alert').set({
-      ownerUid: 'owner-b',
-      createdAt: new Date('2026-10-31T00:00:00Z'),
-      kind: 'critical',
-    });
+    await db
+      .collection('alerts')
+      .doc('foreign-alert')
+      .set({
+        ownerUid: 'owner-b',
+        createdAt: new Date('2026-10-31T00:00:00Z'),
+        kind: 'critical',
+      });
 
     const alerts = await strategies.listAlertsForOwner('owner-a');
     expect(alerts).toHaveLength(50);
