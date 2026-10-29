@@ -43,7 +43,7 @@ Status labels: **Implemented & verified**, **Implemented, verification pending**
 | Flutter dashboard cards, demo warning and stale state | Widget tests for four tickers, thresholds, stale data and entry validation | Implemented, verification pending | PR 2: await exact-head Flutter CI |
 | Critical user journey | Configure strategy -> provider snapshot -> risk -> owner-scoped outbox -> notification delivery | Implemented, CI verification pending | `firestore-store.test.ts`: deterministic end-to-end journey using Firestore fake and notification dispatcher; real Firebase/provider smoke still required |
 | Responsive Flutter Web build and Android release build | Flutter analyze/test/web build; Android release build | Implemented in CI, verification pending | Dashboard follow-up PR fixes missing web platform scaffolding; Android release is manual |
-| Release smoke / rollback | Health/auth/freshness/alert smoke and rollback procedure | Planned | Release runbook |
+| Release smoke / rollback | Automated API liveness/configuration and anonymous-auth denial smoke checks; documented optional authenticated dashboard check and rollback verification | Smoke script and runbook added in MR 3; exact-head CI pending; live deployment verification pending | `scripts/release-smoke.sh`, `docs/release/runbook.md`; real provider freshness and Telegram/FCM delivery remain separate live checks |
 
 ## Business-value test principles
 - Assert the outcome a user relies on, not private implementation details.

@@ -48,6 +48,16 @@ When the relevant capabilities exist:
 9. Confirm provider limits, market-data terms and public redistribution permissions.
 10. Record commit, CI run, smoke-test results, known limitations and release owner.
 
+## Deployment smoke check
+
+Run the repository smoke script against the deployed API after a deployment and again after rollback:
+
+```bash
+FOPLAYER_SMOKE_BASE_URL=https://<your-api-host> bash scripts/release-smoke.sh
+```
+
+The script checks that `GET /health` returns the expected service identity, valid market-hours configuration and diagnostic sections, and that anonymous `GET /api/dashboard` is rejected with HTTP 401. To also check a signed-in dashboard, supply a short-lived Firebase ID token through the secret environment variable `FOPLAYER_SMOKE_BEARER_TOKEN`; never put tokens on the command line or print them in CI logs. Use a protected CI secret or run the authenticated check locally. The script does not send test Telegram/FCM messages and does not prove market data is fresh. Those require a controlled, explicitly authorized live smoke test.
+
 ## Rollback
 - Identify the last known-good deployment and commit before release.
 - If risk calculations, freshness indicators, authorization or alert deduplication are wrong, disable alert delivery/monitoring first if safe to do so, then roll back to the last known-good version.
