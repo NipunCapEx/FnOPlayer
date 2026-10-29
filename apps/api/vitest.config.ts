@@ -6,6 +6,8 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: ['src/**/*.ts'],
+      // This file contains only TypeScript interfaces and has no runtime behavior.
+      exclude: ['src/firestore-port.ts'],
       reporter: ['text', 'lcov'],
       thresholds: {
         lines: 95,
