@@ -1,5 +1,10 @@
 import { ServiceUnavailableException } from '@nestjs/common';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { getFirestore } from 'firebase-admin/firestore';
+
+vi.mock('firebase-admin/firestore', () => ({
+  getFirestore: vi.fn(() => ({ collection: vi.fn() })),
+}));
 import { FirebaseAdminService } from '../src/firebase-admin.service.js';
 
 const environmentKeys = [
@@ -36,14 +41,20 @@ describe('FirebaseAdminService', () => {
     );
   });
 
-  it('supports an optional named Firestore database without making it required for configuration', () => {
+  it('selects the configured named Firestore database', () => {
     for (const key of environmentKeys) delete process.env[key];
     process.env.FIREBASE_PROJECT_ID = 'test-project';
     process.env.GOOGLE_APPLICATION_CREDENTIALS = '/not-read-by-this-test.json';
     process.env.FIRESTORE_DATABASE_ID = 'market-data-db';
 
-    expect(new FirebaseAdminService().isConfigured).toBe(true);
-    expect(process.env.FIRESTORE_DATABASE_ID).toBe('market-data-db');
+    const service = new FirebaseAdminService();
+    service.onModuleInit();
+    service.firestore;
+
+    expect(getFirestore).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'foplayer-api' }),
+      'market-data-db',
+    );
   });
 
   it('requires both a project ID and a server credential source', () => {
