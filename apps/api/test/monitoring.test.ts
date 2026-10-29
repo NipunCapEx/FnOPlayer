@@ -58,8 +58,8 @@ function createHarness(price = 1000, previousClose = 1000) {
       assessments.push(assessment);
       latestExchangeTimestamps.set(_id, marketSnapshot.exchangeTimestamp);
     }),
-    getLatestExchangeTimestamp: vi.fn(async (id) =>
-      latestExchangeTimestamps.get(id) ?? null,
+    getLatestExchangeTimestamp: vi.fn(
+      async (id) => latestExchangeTimestamps.get(id) ?? null,
     ),
     getRiskEpisodeState: vi.fn(
       async (strategyId) => riskStates.get(strategyId) ?? null,
