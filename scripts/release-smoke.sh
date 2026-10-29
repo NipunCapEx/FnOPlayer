@@ -62,7 +62,7 @@ if [[ -n "${FOPLAYER_SMOKE_BEARER_TOKEN:-}" ]]; then
   echo "Checking authenticated dashboard access..."
   authenticated_status="$(request /api/dashboard "$tmpdir/dashboard.json" \
     --header "Authorization: Bearer $FOPLAYER_SMOKE_BEARER_TOKEN" \
-    --header 'Accept: application/json')
+    --header 'Accept: application/json')"
   if [[ "$authenticated_status" != "200" ]]; then
     echo "::error::Authenticated GET /api/dashboard returned HTTP $authenticated_status (expected 200)."
     exit 1
