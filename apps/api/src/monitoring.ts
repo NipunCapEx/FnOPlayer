@@ -669,6 +669,8 @@ export class PollingWorker {
   private lastCycleFailureAt: string | null = null;
   private lastSuccessfulCycleAt: string | null = null;
   private lastRecoveryAt: string | null = null;
+  private activeCycleFinished: Promise<void> | undefined;
+  private finishActiveCycle: (() => void) | undefined;
 
   constructor(
     private readonly monitor: RiskMonitor,
@@ -725,6 +727,9 @@ export class PollingWorker {
       return;
     }
     this.running = true;
+    this.activeCycleFinished = new Promise<void>((resolve) => {
+      this.finishActiveCycle = resolve;
+    });
     this.lastCycleStartedAt = now.toISOString();
     this.lastCycleStatus = 'running';
     let recovered = false;
@@ -747,12 +752,22 @@ export class PollingWorker {
         if (recovered) this.lastRecoveryAt = completedAt;
       }
       this.running = false;
+      this.finishActiveCycle?.();
+      this.finishActiveCycle = undefined;
+      this.activeCycleFinished = undefined;
     }
   }
 
   stop(): void {
     if (this.timer) clearInterval(this.timer);
     this.timer = undefined;
+  }
+
+  async stopAndDrain(): Promise<void> {
+    this.stop();
+    // Do not abandon an in-flight Firestore write or alert delivery during
+    // graceful application shutdown. Clearing the timer prevents new cycles.
+    await this.activeCycleFinished;
   }
 }
 
