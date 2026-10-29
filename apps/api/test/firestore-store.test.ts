@@ -777,7 +777,11 @@ describe('FirestoreMonitoringRepository — assessment and outbox', () => {
     });
 
     expect(await monitoring.getRiskEpisodeState(strategy.id)).toBeNull();
+    await expect(monitoring.getLatestExchangeTimestamp(strategy.id)).resolves.toBeNull();
     await monitoring.recordAssessment(strategy.id, assessment, snapshot);
+    await expect(monitoring.getLatestExchangeTimestamp(strategy.id)).resolves.toEqual(
+      snapshot.exchangeTimestamp,
+    );
     await expect(strategies.getDashboard('owner-a')).resolves.toMatchObject({
       snapshots: [
         expect.objectContaining({
