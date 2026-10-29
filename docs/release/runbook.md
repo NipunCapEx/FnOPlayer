@@ -4,7 +4,7 @@
 - All code changes go through a PR from a dedicated branch; never commit directly to `master`.
 - Required CI checks must pass on the exact PR head before merge.
 - After merge, verify the default-branch CI run and record the commit and run URL in the QA checkpoint.
-- A successful push to `master` automatically triggers a signed Android release build and uploads the resulting AAB to the Google Play **internal testing** track after the exact commit receives the successful `Required CI summary` status.
+- A successful push to `master` automatically triggers a signed Android release build and uploads the resulting AAB to the Google Play **internal testing** track after the exact commit's repository/secret hygiene, backend, and Flutter check-runs all complete successfully.
 - Pull requests and feature branches do not publish to Google Play. Manual Android Release runs retain a `publish` opt-in.
 - Do not release a market-data or alerting change solely because the build passes; verify data freshness and risk behaviour.
 - Do not claim real-time data unless the selected provider's timestamp and service terms substantiate that claim.
@@ -27,7 +27,7 @@
 - Apply least privilege and review Firebase rules before enabling production traffic.
 
 ## Automated Android internal testing release
-Every push to `master` starts the Android Release workflow. It waits for the `Required CI summary` commit status for that exact SHA, refuses to publish when the status fails or times out, validates release configuration, signs APK/AAB with the configured upload key, verifies fingerprints/artifacts, and uploads the AAB to the internal testing track. The workflow is serialized to reduce overlapping uploads.
+Every push to `master` starts the Android Release workflow. It waits for the repository/secret hygiene, backend, and Flutter check-runs for that exact SHA, refuses to publish when the status fails or times out, validates release configuration, signs APK/AAB with the configured upload key, verifies fingerprints/artifacts, and uploads the AAB to the internal testing track. The workflow is serialized to reduce overlapping uploads.
 
 Required GitHub repository configuration:
 - Secrets: `FIREBASE_GOOGLE_SERVICES_JSON`, `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`, `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`.
