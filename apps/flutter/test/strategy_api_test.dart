@@ -15,7 +15,7 @@ void main() {
         auth: _FakeFirebaseAuth(_FakeUser()),
         baseUrl: 'https://api.example.test/',
         client: MockClient((request) async {
-          captured = request;
+          captured = request as http.Request;
           return http.Response(
             jsonEncode(_strategyJson(
               id: 'strategy-1',
@@ -76,7 +76,7 @@ void main() {
         auth: _FakeFirebaseAuth(_FakeUser()),
         baseUrl: 'https://api.example.test',
         client: MockClient((request) async {
-          captured = request;
+          captured = request as http.Request;
           return http.Response(
             jsonEncode(_strategyJson(
               id: 'id/with space',
