@@ -820,7 +820,9 @@ function describeFirestoreError(error: unknown): {
         : null,
     errorMessage:
       typeof value.message === 'string'
-        ? value.message.replace(/(?:Bearer\s+)\S+/gi, 'Bearer [redacted]').slice(0, 300)
+        ? value.message
+            .replace(/(?:Bearer\s+)\S+/gi, 'Bearer [redacted]')
+            .slice(0, 300)
         : 'No error message provided',
   };
 }
