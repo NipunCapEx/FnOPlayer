@@ -447,6 +447,30 @@ export class FirestoreMonitoringRepository
     return strategies;
   }
 
+  async getLatestExchangeTimestamp(strategyId: string): Promise<Date | null> {
+    const document = await this.db
+      .collection('strategySnapshots')
+      .doc(strategyId)
+      .get();
+    if (!document.exists) return null;
+    const value = document.data()?.exchangeTimestamp;
+    if (value instanceof Date && Number.isFinite(value.getTime())) {
+      return value;
+    }
+    if (
+      value &&
+      typeof value === 'object' &&
+      'toDate' in value &&
+      typeof value.toDate === 'function'
+    ) {
+      const timestamp = (value.toDate as () => Date)();
+      return timestamp instanceof Date && Number.isFinite(timestamp.getTime())
+        ? timestamp
+        : null;
+    }
+    return null;
+  }
+
   async recordAssessment(
     strategyId: string,
     assessment: RiskAssessment,
