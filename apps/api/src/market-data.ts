@@ -124,16 +124,31 @@ interface YahooChartResult {
   };
 }
 
+export const DEFAULT_YAHOO_CHART_BASE_URL =
+  'https://query1.finance.yahoo.com/v8/finance/chart';
+
 export class YahooChartProvider implements MarketDataProvider {
   private readonly dailyHistory = new Map<
     SupportedSymbol,
     { date: string; closes: number[] }
   >();
 
+  private readonly baseUrl: string;
+  private readonly timeoutMs: number;
+
   constructor(
     private readonly request: typeof fetch = fetch,
     private readonly now: () => Date = () => new Date(),
-  ) {}
+    options: { baseUrl?: string; timeoutMs?: number } = {},
+  ) {
+    this.baseUrl = normalizeYahooChartBaseUrl(
+      options.baseUrl ?? process.env.FOPLAYER_YAHOO_CHART_BASE_URL,
+    );
+    this.timeoutMs = positiveIntegerFromEnvironment(
+      options.timeoutMs ?? Number(process.env.FOPLAYER_MARKET_DATA_TIMEOUT_MS),
+      10_000,
+    );
+  }
 
   async getSnapshot(symbol: SupportedSymbol): Promise<MarketSnapshot> {
     const intraday = await this.fetchChart(symbol, '1d', '5m');
@@ -194,12 +209,22 @@ export class YahooChartProvider implements MarketDataProvider {
     interval: '5m' | '1d',
   ): Promise<YahooChartResult> {
     const ticker = encodeURIComponent(`${symbol}.NS`);
-    const url =
-      `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}` +
-      `?range=${range}&interval=${interval}`;
-    const response = await this.request(url, {
-      headers: { accept: 'application/json' },
-    });
+    const url = `${this.baseUrl}/${ticker}?range=${range}&interval=${interval}`;
+    let response: Response;
+    try {
+      response = await this.request(url, {
+        headers: {
+          accept: 'application/json',
+          'user-agent': 'FnOPlayer/0.1 market-data prototype',
+        },
+        signal: AbortSignal.timeout(this.timeoutMs),
+      });
+    } catch (error) {
+      if (error instanceof Error && error.name === 'TimeoutError') {
+        throw new Error('Yahoo Finance request timed out');
+      }
+      throw new Error('Yahoo Finance request could not be completed');
+    }
     if (!response.ok) {
       throw new Error(
         `Yahoo Finance request failed with HTTP ${response.status}`,
@@ -216,4 +241,29 @@ export class YahooChartProvider implements MarketDataProvider {
     }
     return result;
   }
+}
+
+function normalizeYahooChartBaseUrl(value?: string): string {
+  const candidate = value?.trim() || DEFAULT_YAHOO_CHART_BASE_URL;
+  let parsed: URL;
+  try {
+    parsed = new URL(candidate);
+  } catch {
+    throw new Error('FOPLAYER_YAHOO_CHART_BASE_URL must be a valid HTTPS URL');
+  }
+  if (parsed.protocol !== 'https:' || parsed.username || parsed.password) {
+    throw new Error(
+      'FOPLAYER_YAHOO_CHART_BASE_URL must be an HTTPS URL without credentials',
+    );
+  }
+  return parsed.toString().replace(/\/$/, '');
+}
+
+function positiveIntegerFromEnvironment(
+  value: number,
+  fallback: number,
+): number {
+  return Number.isInteger(value) && value >= 100 && value <= 60_000
+    ? value
+    : fallback;
 }
