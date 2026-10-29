@@ -63,7 +63,9 @@ class PersistentMonitoringHarness
     this.assessments.push(assessment);
   }
 
-  async getRiskEpisodeState(strategyId: string): Promise<RiskEpisodeState | null> {
+  async getRiskEpisodeState(
+    strategyId: string,
+  ): Promise<RiskEpisodeState | null> {
     return this.riskStates.get(strategyId) ?? null;
   }
 
@@ -102,12 +104,18 @@ class PersistentMonitoringHarness
       .map((item) => item.alert);
   }
 
-  async markAlertDelivered(idempotencyKey: string, _deliveredAt: Date): Promise<void> {
+  async markAlertDelivered(
+    idempotencyKey: string,
+    _deliveredAt: Date,
+  ): Promise<void> {
     const stored = this.alerts.get(idempotencyKey);
     if (stored) stored.status = 'delivered';
   }
 
-  async markAlertSuppressed(idempotencyKey: string, _suppressedAt: Date): Promise<void> {
+  async markAlertSuppressed(
+    idempotencyKey: string,
+    _suppressedAt: Date,
+  ): Promise<void> {
     const stored = this.alerts.get(idempotencyKey);
     if (stored) stored.status = 'suppressed';
   }
