@@ -209,8 +209,7 @@ export class YahooChartProvider implements MarketDataProvider {
     interval: '5m' | '1d',
   ): Promise<YahooChartResult> {
     const ticker = encodeURIComponent(`${symbol}.NS`);
-    const url =
-      `${this.baseUrl}/${ticker}?range=${range}&interval=${interval}`;
+    const url = `${this.baseUrl}/${ticker}?range=${range}&interval=${interval}`;
     let response: Response;
     try {
       response = await this.request(url, {
@@ -253,12 +252,17 @@ function normalizeYahooChartBaseUrl(value?: string): string {
     throw new Error('FOPLAYER_YAHOO_CHART_BASE_URL must be a valid HTTPS URL');
   }
   if (parsed.protocol !== 'https:' || parsed.username || parsed.password) {
-    throw new Error('FOPLAYER_YAHOO_CHART_BASE_URL must be an HTTPS URL without credentials');
+    throw new Error(
+      'FOPLAYER_YAHOO_CHART_BASE_URL must be an HTTPS URL without credentials',
+    );
   }
   return parsed.toString().replace(/\/$/, '');
 }
 
-function positiveIntegerFromEnvironment(value: number, fallback: number): number {
+function positiveIntegerFromEnvironment(
+  value: number,
+  fallback: number,
+): number {
   return Number.isInteger(value) && value >= 100 && value <= 60_000
     ? value
     : fallback;
