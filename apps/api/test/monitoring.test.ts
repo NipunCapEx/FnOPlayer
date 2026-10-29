@@ -732,6 +732,36 @@ describe('PollingWorker', () => {
     await first;
   });
 
+  it('waits for an in-flight cycle when draining during shutdown', async () => {
+    let finish!: () => void;
+    const pending = new Promise<void>((resolve) => {
+      finish = resolve;
+    });
+    const runOnce = vi.fn(() => pending);
+    const worker = new PollingWorker({ runOnce } as unknown as RiskMonitor, {
+      now: () => now,
+      isMonitoringWindow: () => true,
+    });
+
+    const cycle = worker.tick();
+    await Promise.resolve();
+    let drained = false;
+    const shutdown = worker.stopAndDrain().then(() => {
+      drained = true;
+    });
+
+    await Promise.resolve();
+    expect(drained).toBe(false);
+    expect(worker.getDiagnostics().running).toBe(true);
+
+    finish();
+    await Promise.all([cycle, shutdown]);
+
+    expect(drained).toBe(true);
+    expect(worker.getDiagnostics().running).toBe(false);
+    expect(worker.getDiagnostics().lastCycleStatus).toBe('succeeded');
+  });
+
   it('starts only one timer and stops future polls', async () => {
     vi.useFakeTimers();
     try {
