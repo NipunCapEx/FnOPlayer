@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       publish:
-        description: Publish the signed App Bundle to Google Play internal testing
+        description: Publish the signed App Bundle to both internal and closed testing tracks
         type: boolean
         required: true
         default: false
@@ -416,4 +416,14 @@ jobs:
           packageName: ${{ vars.ANDROID_APPLICATION_ID }}
           releaseFiles: apps/flutter/build/app/outputs/bundle/release/app-release.aab
           track: internal
+          status: completed
+
+      - name: Publish to Google Play closed testing
+        if: ${{ github.event_name == 'push' || inputs.publish }}
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: ${{ vars.ANDROID_APPLICATION_ID }}
+          releaseFiles: apps/flutter/build/app/outputs/bundle/release/app-release.aab
+          track: alpha
           status: completed
