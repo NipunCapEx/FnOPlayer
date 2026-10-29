@@ -48,14 +48,19 @@ function createHarness(price = 1000, previousClose = 1000) {
   const delivered = new Set<string>();
   const deliveryFailures: Array<{ key: string; reason: string }> = [];
   const riskStates = new Map<string, RiskEpisodeState>();
+  const latestExchangeTimestamps = new Map<string, Date>();
   const repository: MonitoringRepository = {
     listActiveStrategies: vi.fn(async () => [
       strategy,
       { ...strategy, id: 'inactive', active: false },
     ]),
-    recordAssessment: vi.fn(async (_id, assessment) => {
+    recordAssessment: vi.fn(async (_id, assessment, marketSnapshot) => {
       assessments.push(assessment);
+      latestExchangeTimestamps.set(_id, marketSnapshot.exchangeTimestamp);
     }),
+    getLatestExchangeTimestamp: vi.fn(async (id) =>
+      latestExchangeTimestamps.get(id) ?? null,
+    ),
     getRiskEpisodeState: vi.fn(
       async (strategyId) => riskStates.get(strategyId) ?? null,
     ),
@@ -101,6 +106,7 @@ function createHarness(price = 1000, previousClose = 1000) {
     delivered,
     deliveryFailures,
     riskStates,
+    latestExchangeTimestamps,
     setSnapshot: (next: MarketSnapshot) => {
       current = next;
     },
@@ -186,6 +192,28 @@ describe('Snapshot validation rejects stale and invalid market data', () => {
       expect(harness.provider.getSnapshot).not.toHaveBeenCalled();
       expect(harness.repository.recordAssessment).not.toHaveBeenCalled();
     }
+  });
+
+  it('rejects an exchange snapshot older than the last persisted assessment', async () => {
+    const harness = createHarness(1120);
+    harness.latestExchangeTimestamps.set(
+      strategy.id,
+      new Date(now.getTime() + 60 * 1000),
+    );
+
+    await harness.monitor.runOnce();
+
+    expect(harness.repository.recordAssessment).not.toHaveBeenCalled();
+    expect(harness.alerts).toHaveLength(0);
+    expect(harness.unavailable).toContainEqual({
+      symbol: 'RELIANCE',
+      reason: 'snapshot is out of order',
+    });
+    expect(harness.monitor.getMarketDataDiagnostics(now)[0]).toMatchObject({
+      symbol: 'RELIANCE',
+      status: 'invalid',
+      reason: 'snapshot is out of order',
+    });
   });
 
   it('records source timestamps and age for a fresh market snapshot', async () => {
