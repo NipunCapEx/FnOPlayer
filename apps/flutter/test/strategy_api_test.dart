@@ -71,7 +71,8 @@ void main() {
       expect(saved.thresholds.breachedPercent, 9);
     });
 
-    test('updates only supplied fields and safely encodes strategy ID', () async {
+    test('updates only supplied fields and safely encodes strategy ID',
+        () async {
       late http.Request captured;
       final client = StrategyApiClient(
         auth: _FakeFirebaseAuth(_FakeUser()),
