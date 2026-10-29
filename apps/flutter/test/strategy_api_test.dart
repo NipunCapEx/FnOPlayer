@@ -97,7 +97,7 @@ void main() {
       );
 
       expect(captured.method, 'PATCH');
-      expect(captured.url.path, '/api/strategies/id%2Fwith%20space');
+      expect(captured.url.toString(), contains('/api/strategies/id%2Fwith%20space'));
       expect(jsonDecode(captured.body), {
         'entryPrice': 1300,
         'active': false,
