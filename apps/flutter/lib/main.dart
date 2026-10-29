@@ -11,29 +11,6 @@ import 'alert_history.dart';
 import 'notification_registration.dart';
 import 'package:foplayer/strategy_api.dart';
 
-const MethodChannel _authDiagnosticsChannel =
-    MethodChannel('com.nipun.finance.fno/auth_diagnostics');
-
-Future<void> _logAuthDiagnostics() async {
-  if (kIsWeb) return;
-  try {
-    final native = await _authDiagnosticsChannel
-        .invokeMapMethod<String, dynamic>('signingInfo');
-    final app = Firebase.apps.isEmpty ? null : Firebase.app();
-    debugPrint(
-      '[FOPLAYER_AUTH_DIAGNOSTICS] '
-      'firebaseProjectId=${app?.options.projectId ?? "unavailable"} '
-      'firebaseAppId=${app?.options.appId ?? "unavailable"} '
-      'package=${native?['packageName'] ?? "unavailable"} '
-      'signerSha1=${native?['signerSha1'] ?? "unavailable"} '
-      'signerSha256=${native?['signerSha256'] ?? "unavailable"} '
-      'webClientId=${native?['webClientId'] ?? "unavailable"}',
-    );
-  } catch (error) {
-    debugPrint(
-        '[FOPLAYER_AUTH_DIAGNOSTICS] native diagnostics unavailable: $error');
-  }
-}
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -196,7 +173,6 @@ class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
 
   Future<void> _signIn(BuildContext context) async {
-    await _logAuthDiagnostics();
     try {
       final googleUser = await GoogleSignIn().signIn();
       if (googleUser == null) return;
