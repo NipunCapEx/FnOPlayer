@@ -1,6 +1,8 @@
 name: Android Release
 
 on:
+  push:
+    branches: [master]
   workflow_dispatch:
     inputs:
       publish:
@@ -19,6 +21,9 @@ concurrency:
 jobs:
   release:
     name: Build signed APK and Play Store App Bundle
+    # Publish only commits pushed to master after the commit's full CI summary succeeds.
+    # Manual runs retain the existing opt-in publication behavior.
+    if: ${{ github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/master' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -28,6 +33,33 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Wait for required CI summary on this exact commit
+        if: ${{ github.event_name == 'push' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          COMMIT_SHA: ${{ github.sha }}
+        working-directory: .
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 60); do
+            STATUS=$(gh api "repos/$GH_REPO/commits/$COMMIT_SHA/status" --jq '[.statuses[] | select(.context == "Required CI summary")][0].state // "pending"')
+            echo "Required CI summary for $COMMIT_SHA: $STATUS (attempt $attempt/60)"
+            if [ "$STATUS" = "success" ]; then
+              exit 0
+            fi
+            if [ "$STATUS" = "failure" ] || [ "$STATUS" = "error" ]; then
+              echo "::error::Required CI summary failed; refusing to publish this commit."
+              exit 1
+            fi
+            sleep 15
+          done
+          echo "::error::Timed out waiting for Required CI summary; refusing to publish."
+          exit 1
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -107,9 +139,10 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
         run: |
           set -euo pipefail
-          for key in FIREBASE_GOOGLE_SERVICES_JSON ANDROID_APPLICATION_ID FOPLAYER_API_BASE_URL ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+          for key in FIREBASE_GOOGLE_SERVICES_JSON ANDROID_APPLICATION_ID FOPLAYER_API_BASE_URL ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD GOOGLE_PLAY_SERVICE_ACCOUNT_JSON; do
             if [ -z "${!key}" ]; then
               echo "::error::Missing GitHub secret/variable: $key. Configure it before running a signed release."
               exit 1
@@ -316,15 +349,12 @@ jobs:
           UPLOAD_SHA1=$(printf '%s\n' "$UPLOAD_CERTS" | awk -F': ' '/SHA1:|SHA-1:/{print $2; exit}')
           UPLOAD_SHA256=$(printf '%s\n' "$UPLOAD_CERTS" | awk -F': ' '/SHA256:|SHA-256:/{print $2; exit}')
           APK_CERTS=$("$BUILD_TOOLS_DIR/apksigner" verify --print-certs "$APK")
-          # Parse digest labels robustly across Android build-tools versions and harmless
-          # output-prefix/whitespace changes. Never print certificate/private-key contents.
           APK_SHA1=$(printf '%s\n' "$APK_CERTS" | sed -nE 's/.*SHA-1 digest:[[:space:]]*([[:xdigit:]:]+).*/\1/Ip' | head -n 1)
           APK_SHA256=$(printf '%s\n' "$APK_CERTS" | sed -nE 's/.*SHA-256 digest:[[:space:]]*([[:xdigit:]:]+).*/\1/Ip' | head -n 1)
           for name in UPLOAD_SHA1 UPLOAD_SHA256 APK_SHA1 APK_SHA256; do
-            if [ -z "\${!name}" ]; then
+            if [ -z "${!name}" ]; then
               echo "::error::Could not extract $name from signing-tool output."
               if [ "$name" = "APK_SHA1" ] || [ "$name" = "APK_SHA256" ]; then
-                echo "apksigner output labels available:"
                 printf '%s\n' "$APK_CERTS" | grep -Ei 'signer|sha-?1|sha-?256' || true
               fi
               exit 1
@@ -360,7 +390,7 @@ jobs:
           retention-days: 30
 
       - name: Publish to Google Play internal testing
-        if: ${{ inputs.publish }}
+        if: ${{ github.event_name == 'push' || inputs.publish }}
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
