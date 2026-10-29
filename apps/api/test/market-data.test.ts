@@ -29,6 +29,37 @@ function chartResponse(input: {
 }
 
 describe('YahooChartProvider — provider contract', () => {
+  it('uses a configurable HTTPS Yahoo chart base URL and request timeout', async () => {
+    const request = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+      expect(init?.signal).toBeDefined();
+      return chartResponse({
+        price: 100,
+        previousClose: 98,
+        timestamp: Math.floor(now.getTime() / 1000),
+        closes: String(url).includes('interval=5m') ? [99, 100] : [97, 98, 99, 100],
+      });
+    });
+    const provider = new YahooChartProvider(request as typeof fetch, () => now, {
+      baseUrl: 'https://example.test/custom/chart/',
+      timeoutMs: 2500,
+    });
+
+    await provider.getSnapshot('RELIANCE');
+
+    expect(String(request.mock.calls[0]?.[0])).toContain(
+      'https://example.test/custom/chart/RELIANCE.NS?range=1d&interval=5m',
+    );
+  });
+
+  it('rejects an insecure configured market-data endpoint', () => {
+    expect(
+      () =>
+        new YahooChartProvider(fetch, () => now, {
+          baseUrl: 'http://example.test/chart',
+        }),
+    ).toThrow('must be an HTTPS URL');
+  });
+
   it('maps the Indian ticker, spot quote, exchange timestamp and daily history', async () => {
     const request = vi.fn(async (url: RequestInfo | URL) => {
       if (String(url).includes('interval=5m')) {
