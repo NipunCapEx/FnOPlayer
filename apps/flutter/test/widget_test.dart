@@ -273,8 +273,7 @@ void main() {
       await tester.tap(find.byKey(const Key('save-entry-button')));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byKey(const Key('watchlist-row-RELIANCE')));
-      await tester.pumpAndSettle();
+      // The detail sheet remains open after saving the entry.
       expect(find.text('₹1000.00'), findsOneWidget);
       expect(find.text('₹880.00'), findsOneWidget);
       expect(find.text('₹1120.00'), findsOneWidget);
