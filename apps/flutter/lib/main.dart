@@ -520,12 +520,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
     try {
       final health = await apiClient.getHealth();
       final readiness = health['monitoringReadiness'];
-      final worker = readiness is Map<String, dynamic> ? readiness['worker'] : null;
-      final freshness = readiness is Map<String, dynamic> ? readiness['marketDataFreshness'] : null;
+      final worker =
+          readiness is Map<String, dynamic> ? readiness['worker'] : null;
+      final freshness = readiness is Map<String, dynamic>
+          ? readiness['marketDataFreshness']
+          : null;
       var message = 'Market feed status is not yet available.';
       if (freshness is List && freshness.isNotEmpty) {
         final records = freshness.whereType<Map<String, dynamic>>().toList();
-        final freshCount = records.where((item) => item['status'] == 'fresh').length;
+        final freshCount =
+            records.where((item) => item['status'] == 'fresh').length;
         final failures = records
             .where((item) => item['status'] != 'fresh')
             .map((item) => item['reason'])
@@ -542,15 +546,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
         }
       } else if (worker is Map<String, dynamic>) {
         if (worker['started'] != true) {
-          message = 'Market monitor is not running. Check Firebase server credentials and deployment configuration.';
-        } else if (worker['lastCycleStatus'] == 'skipped_outside_market_hours') {
-          message = 'Outside configured market hours. Fresh quotes resume during the next market session.';
+          message =
+              'Market monitor is not running. Check Firebase server credentials and deployment configuration.';
+        } else if (worker['lastCycleStatus'] ==
+            'skipped_outside_market_hours') {
+          message =
+              'Outside configured market hours. Fresh quotes resume during the next market session.';
         } else if (worker['lastCycleStatus'] == 'never_run') {
           message = 'Market monitor has not completed its first cycle yet.';
         } else if (worker['lastCycleStatus'] == 'failed') {
-          message = 'The last market-monitoring cycle failed. Check the backend health diagnostics.';
+          message =
+              'The last market-monitoring cycle failed. Check the backend health diagnostics.';
         } else {
-          message = 'No validated market snapshots have been reported by the backend yet.';
+          message =
+              'No validated market snapshots have been reported by the backend yet.';
         }
       }
       if (mounted && _marketDataDiagnostic != message) {
@@ -1072,16 +1081,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     child: Container(
                       key: const Key('market-data-diagnostic'),
                       width: double.infinity,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.55),
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest
+                            .withValues(alpha: 0.55),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.blueGrey.withValues(alpha: 0.22)),
+                        border: Border.all(
+                            color: Colors.blueGrey.withValues(alpha: 0.22)),
                       ),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(Icons.sensors_outlined, size: 18, color: Colors.blueGrey),
+                          const Icon(Icons.sensors_outlined,
+                              size: 18, color: Colors.blueGrey),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
@@ -1108,7 +1123,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       const SizedBox(width: 8),
                       _SummaryTile(
                         width: 128,
-                        label: widget.apiClient == null ? 'Demo quotes' : 'Fresh quotes',
+                        label: widget.apiClient == null
+                            ? 'Demo quotes'
+                            : 'Fresh quotes',
                         value: '$activeCount / ${instruments.length}',
                         icon: Icons.verified_outlined,
                       ),
@@ -1167,16 +1184,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             builder: (sheetContext) => FractionallySizedBox(
                               heightFactor: 0.92,
                               child: SingleChildScrollView(
-                                padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+                                padding:
+                                    const EdgeInsets.fromLTRB(12, 0, 12, 24),
                                 child: InstrumentCard(
                                   instrument: instrument,
                                   onEditEntry: () => _editEntry(instrument),
-                                  onEditEntryDate: () => _editEntryDate(instrument),
+                                  onEditEntryDate: () =>
+                                      _editEntryDate(instrument),
                                   onEditExpiry: () => _editExpiry(instrument),
-                                  onEditThresholds: () => _editThresholds(instrument),
-                                  onNotificationsChanged: widget.apiClient == null
+                                  onEditThresholds: () =>
+                                      _editThresholds(instrument),
+                                  onNotificationsChanged: widget.apiClient ==
+                                          null
                                       ? null
-                                      : (enabled) => _setNotificationsEnabled(instrument, enabled),
+                                      : (enabled) => _setNotificationsEnabled(
+                                          instrument, enabled),
                                   onRemove: () {
                                     Navigator.of(sheetContext).pop();
                                     _removeInstrument(instrument);
@@ -1684,7 +1706,8 @@ class _SummaryTile extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
           child: Row(
             children: [
-              Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
+              Icon(icon,
+                  size: 20, color: Theme.of(context).colorScheme.primary),
               const SizedBox(width: 8),
               Expanded(
                 child: Column(
@@ -1756,7 +1779,12 @@ class InstrumentWatchlistRow extends StatelessWidget {
     return Card(
       key: Key('watchlist-row-${instrument.symbol}'),
       margin: EdgeInsets.zero,
-      color: stale ? Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.62) : null,
+      color: stale
+          ? Theme.of(context)
+              .colorScheme
+              .surfaceContainerHighest
+              .withValues(alpha: 0.62)
+          : null,
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
@@ -1789,10 +1817,19 @@ class InstrumentWatchlistRow extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      isDemo ? 'DEMO' : stale ? (instrument.hasSpotPrice ? 'Last quote' : 'Awaiting quote') : 'Spot price',
+                      isDemo
+                          ? 'DEMO'
+                          : stale
+                              ? (instrument.hasSpotPrice
+                                  ? 'Last quote'
+                                  : 'Awaiting quote')
+                              : 'Spot price',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.blueGrey),
+                      style: Theme.of(context)
+                          .textTheme
+                          .labelSmall
+                          ?.copyWith(color: Colors.blueGrey),
                     ),
                   ],
                 ),
@@ -1804,7 +1841,9 @@ class InstrumentWatchlistRow extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      instrument.hasSpotPrice ? '₹${instrument.spotPrice.toStringAsFixed(2)}' : 'Unavailable',
+                      instrument.hasSpotPrice
+                          ? '₹${instrument.spotPrice.toStringAsFixed(2)}'
+                          : 'Unavailable',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
@@ -1815,7 +1854,10 @@ class InstrumentWatchlistRow extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       movement,
-                      style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w800),
+                      style: TextStyle(
+                          color: color,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800),
                     ),
                   ],
                 ),
@@ -1832,11 +1874,16 @@ class InstrumentWatchlistRow extends StatelessWidget {
                   status,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.w800),
+                  style: TextStyle(
+                      color: color, fontSize: 9, fontWeight: FontWeight.w800),
                 ),
               ),
               const SizedBox(width: 2),
-              Icon(Icons.chevron_right, size: 20, color: stale ? Colors.blueGrey : Theme.of(context).colorScheme.onSurfaceVariant),
+              Icon(Icons.chevron_right,
+                  size: 20,
+                  color: stale
+                      ? Colors.blueGrey
+                      : Theme.of(context).colorScheme.onSurfaceVariant),
             ],
           ),
         ),
