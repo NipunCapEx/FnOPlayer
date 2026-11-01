@@ -1115,7 +1115,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   child: Row(
                     children: [
                       _SummaryTile(
-                        width: 112,
+                        width: 94,
                         label: 'Tracked',
                         value: '${instruments.length}',
                         icon: Icons.show_chart,
@@ -1131,7 +1131,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                       const SizedBox(width: 8),
                       _SummaryTile(
-                        width: 112,
+                        width: 94,
                         label: 'Breaches',
                         value: '$breachedCount',
                         icon: Icons.warning_amber_rounded,
