@@ -273,6 +273,8 @@ void main() {
       await tester.tap(find.byKey(const Key('save-entry-button')));
       await tester.pumpAndSettle();
 
+      await tester.tap(find.byKey(const Key('watchlist-row-RELIANCE')));
+      await tester.pumpAndSettle();
       expect(find.text('₹1000.00'), findsOneWidget);
       expect(find.text('₹880.00'), findsOneWidget);
       expect(find.text('₹1120.00'), findsOneWidget);
@@ -308,6 +310,8 @@ void main() {
     testWidgets('rejects non-positive entry values at the dialog boundary',
         (tester) async {
       await tester.pumpWidget(const FOPlayerApp(prototypeMode: true));
+      await tester.tap(find.byKey(const Key('watchlist-row-RELIANCE')));
+      await tester.pumpAndSettle();
       final editButton = find.widgetWithText(TextButton, 'Edit entry').first;
       await tester.ensureVisible(editButton);
       await tester.pumpAndSettle();
@@ -350,12 +354,10 @@ void main() {
 
     testWidgets('rejects invalid entry when adding a symbol', (tester) async {
       await tester.pumpWidget(const FOPlayerApp(prototypeMode: true));
+      await tester.tap(find.byKey(const Key('watchlist-row-RELIANCE')));
+      await tester.pumpAndSettle();
       final removeButton = find.byKey(const Key('remove-RELIANCE'));
-      await tester.scrollUntilVisible(
-        removeButton,
-        250,
-        scrollable: find.byType(Scrollable).first,
-      );
+      await tester.ensureVisible(removeButton);
       await tester.pumpAndSettle();
       await tester.tap(removeButton);
       await tester.pumpAndSettle();
