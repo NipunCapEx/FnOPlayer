@@ -3,11 +3,6 @@ name: Android Release
 on:
   workflow_dispatch:
     inputs:
-      restart_backend:
-        description: Restart the FnO Player Render backend after a successful manual release
-        type: boolean
-        required: true
-        default: true
 
 permissions:
   contents: read
