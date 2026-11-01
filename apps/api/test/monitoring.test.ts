@@ -131,6 +131,23 @@ describe('Snapshot validation rejects stale and invalid market data', () => {
     expect(harness.alerts).toHaveLength(0);
   });
 
+  it('records a closing snapshot outside the live freshness window without emitting alerts', async () => {
+    const harness = createHarness(1080);
+    const previousSession = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    harness.setSnapshot(
+      snapshot({
+        exchangeTimestamp: previousSession,
+        fetchedAt: now,
+      }),
+    );
+
+    await harness.monitor.runOnce(true);
+
+    expect(harness.assessments).toHaveLength(1);
+    expect(harness.alerts).toHaveLength(0);
+    expect(harness.repository.recordAssessment).toHaveBeenCalled();
+  });
+
   it("applies each strategy's configured thresholds during monitoring", async () => {
     const harness = createHarness(1080);
     vi.mocked(harness.repository.listActiveStrategies).mockResolvedValueOnce([
