@@ -1,15 +1,8 @@
 name: Android Release
 
 on:
-  push:
-    branches: [master]
   workflow_dispatch:
     inputs:
-      publish:
-        description: Publish the signed App Bundle to both internal and closed testing tracks
-        type: boolean
-        required: true
-        default: false
       restart_backend:
         description: Restart the FnO Player Render backend after a successful manual release
         type: boolean
@@ -40,25 +33,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}
-
-      - name: Validate Render backend restart configuration
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.restart_backend }}
-        env:
-          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
-          RENDER_SERVICE_ID: ${{ vars.RENDER_SERVICE_ID }}
-        working-directory: .
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ -z "$RENDER_API_KEY" ]; then
-            echo "::error::Missing GitHub Actions secret RENDER_API_KEY. Add it under Settings > Secrets and variables > Actions."
-            exit 1
-          fi
-          if [ -z "$RENDER_SERVICE_ID" ]; then
-            echo "::error::Missing GitHub Actions variable RENDER_SERVICE_ID. Add the FnO Player backend service ID under Settings > Secrets and variables > Actions > Variables."
-            exit 1
-          fi
-          echo "Render restart configuration is present."
 
       - name: Wait for required CI checks on this exact commit
         if: ${{ github.event_name == 'push' }}
@@ -432,30 +406,3 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Publish to Google Play internal and closed testing
-        if: ${{ github.event_name == 'push' || inputs.publish }}
-        uses: r0adkll/upload-google-play@v1
-        with:
-          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
-          packageName: ${{ vars.ANDROID_APPLICATION_ID }}
-          releaseFiles: apps/flutter/build/app/outputs/bundle/release/app-release.aab
-          tracks: internal,alpha
-          status: completed
-
-      - name: Restart FnO Player Render backend after manual Android release
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.restart_backend }}
-        env:
-          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
-          RENDER_SERVICE_ID: ${{ vars.RENDER_SERVICE_ID }}
-        working-directory: .
-        shell: bash
-        run: |
-          set -euo pipefail
-          echo "Requesting a zero-downtime restart for Render service $RENDER_SERVICE_ID."
-          curl --fail-with-body --silent --show-error \
-            --request POST \
-            --url "https://api.render.com/v1/services/$RENDER_SERVICE_ID/restart" \
-            --header "Authorization: Bearer $RENDER_API_KEY" \
-            --header "Accept: application/json"
-          echo
-          echo "Render accepted the backend restart request."
