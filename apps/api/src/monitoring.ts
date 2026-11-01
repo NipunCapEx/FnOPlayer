@@ -786,7 +786,7 @@ export function marketDataFailureReason(error: unknown): string {
   if (/no chart data/i.test(message)) return 'provider returned no chart data';
   if (/invalid|must be a valid HTTPS URL/i.test(message))
     return 'market-data provider configuration is invalid';
-  return 'market data provider failed (unclassified error)';
+  return 'market data provider failed';
 }
 
 function isExpiredStrategy(strategy: Strategy, now: Date): boolean {
