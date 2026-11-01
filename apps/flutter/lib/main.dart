@@ -1122,11 +1122,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                       const SizedBox(width: 8),
                       _SummaryTile(
-                        width: 128,
-                        label: widget.apiClient == null
-                            ? 'Demo quotes'
-                            : 'Fresh quotes',
-                        value: '$activeCount / ${instruments.length}',
+                        width: 110,
+                        label: widget.apiClient == null ? 'Demo' : 'Fresh',
+                        value: '$activeCount/${instruments.length}',
                         icon: Icons.verified_outlined,
                       ),
                       const SizedBox(width: 8),
