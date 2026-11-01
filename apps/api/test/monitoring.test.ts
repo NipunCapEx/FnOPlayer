@@ -3,6 +3,7 @@ import {
   PollingWorker,
   RiskMonitor,
   isIndianEquityMarketOpen,
+  marketDataFailureReason,
   type MonitoringRepository,
   type RiskAlert,
   type RiskEpisodeState,
@@ -828,3 +829,19 @@ describe('PollingWorker default clock', () => {
     expect(runOnce).toHaveBeenCalledOnce();
   });
 });
+
+describe('marketDataFailureReason', () => {
+  it('distinguishes actionable provider failure categories without raw errors', () => {
+    expect(marketDataFailureReason(new Error('Yahoo Finance request failed with HTTP 429')))
+      .toBe('provider rate limited requests (HTTP 429)');
+    expect(marketDataFailureReason(new Error('Yahoo Finance request failed with HTTP 403')))
+      .toBe('provider denied access (HTTP response)');
+    expect(marketDataFailureReason(new Error('Yahoo Finance request timed out')))
+      .toBe('provider request timed out');
+    expect(marketDataFailureReason(new Error('Yahoo Finance returned incomplete quote data for RELIANCE')))
+      .toBe('provider returned incomplete quote data');
+    expect(marketDataFailureReason(new Error('private endpoint token=secret')))
+      .toBe('market data provider failed (unclassified error)');
+  });
+});
+
