@@ -26,6 +26,14 @@ Future<void> main() async {
 
 enum RiskLevel { normal, caution, critical, breached }
 
+String _formatQuoteTime(DateTime value) {
+  final local = value.toLocal();
+  final hour = local.hour % 12 == 0 ? 12 : local.hour % 12;
+  final minute = local.minute.toString().padLeft(2, '0');
+  final period = local.hour >= 12 ? 'PM' : 'AM';
+  return '$hour:$minute $period';
+}
+
 class Instrument {
   const Instrument({
     required this.symbol,
@@ -67,6 +75,16 @@ class Instrument {
         );
   }
 
+  bool get isMarketClosed {
+    final now = DateTime.now();
+    final weekday = now.weekday;
+    final minutes = now.hour * 60 + now.minute;
+    return weekday == DateTime.saturday ||
+        weekday == DateTime.sunday ||
+        minutes < 9 * 60 + 15 ||
+        minutes >= 15 * 60 + 30;
+  }
+
   bool get isCurrentlyStale {
     if (isStale || isExpired) return true;
     final fetched = fetchedAt;
@@ -76,6 +94,11 @@ class Instrument {
     final now = DateTime.now();
     final fetchAge = now.difference(fetched);
     final exchangeAge = now.difference(lastUpdated);
+    // A recently fetched closing quote is useful outside market hours even
+    // when its exchange timestamp is from the prior trading session.
+    if (isMarketClosed) {
+      return fetchAge > maxAge || fetchAge < -maxFutureSkew;
+    }
     return fetchAge > maxAge ||
         fetchAge < -maxFutureSkew ||
         exchangeAge > maxAge ||
@@ -1764,7 +1787,9 @@ class InstrumentWatchlistRow extends StatelessWidget {
           };
     final status = stale
         ? (instrument.hasSpotPrice ? 'STALE' : 'NO DATA')
-        : switch (level) {
+        : instrument.isMarketClosed
+            ? 'MARKET CLOSED'
+            : switch (level) {
             RiskLevel.normal => 'NORMAL',
             RiskLevel.caution => 'CAUTION',
             RiskLevel.critical => 'CRITICAL',
@@ -1821,7 +1846,9 @@ class InstrumentWatchlistRow extends StatelessWidget {
                               ? (instrument.hasSpotPrice
                                   ? 'Last quote'
                                   : 'Awaiting quote')
-                              : 'Spot price',
+                              : instrument.isMarketClosed
+                                  ? 'Last close · ${_formatQuoteTime(instrument.lastUpdated)}'
+                                  : 'Spot price',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context)
