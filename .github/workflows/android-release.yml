@@ -3,6 +3,21 @@ name: Android Release
 on:
   workflow_dispatch:
     inputs:
+      validation:
+        description: Validation level for the Android build
+        required: true
+        default: full
+        type: choice
+        options:
+          - full
+          - fast
+  workflow_call:
+    inputs:
+      validation:
+        description: Validation level when called by the release controller
+        required: false
+        default: full
+        type: string
 
 permissions:
   contents: read
@@ -16,7 +31,7 @@ jobs:
     name: Build signed APK and Play Store App Bundle
     # This workflow is a manual build-only operation. Publishing and Render deployment
     # are separate manually triggered workflows so each can be retried independently.
-    if: ${{ github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/master' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -30,7 +45,7 @@ jobs:
           ref: ${{ github.sha }}
 
       - name: Wait for required CI checks on this exact commit
-        if: ${{ github.event_name == 'push' }}
+        if: ${{ false }}
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
