@@ -362,8 +362,6 @@ void main() {
       await tester.tap(removeButton);
       await tester.pumpAndSettle();
 
-      await tester.drag(find.byType(ListView).first, const Offset(0, 1200));
-      await tester.pumpAndSettle();
       final addButton = find.byKey(const Key('add-instrument-button'));
       expect(addButton, findsOneWidget);
       await tester.tap(addButton);
