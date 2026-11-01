@@ -585,12 +585,10 @@ void main() {
 
     testWidgets('removes a symbol from the active watchlist', (tester) async {
       await tester.pumpWidget(const FOPlayerApp(prototypeMode: true));
+      await tester.tap(find.byKey(const Key('watchlist-row-RELIANCE')));
+      await tester.pumpAndSettle();
       final removeButton = find.byKey(const Key('remove-RELIANCE'));
-      await tester.scrollUntilVisible(
-        removeButton,
-        250,
-        scrollable: find.byType(Scrollable).first,
-      );
+      await tester.ensureVisible(removeButton);
       await tester.pumpAndSettle();
       await tester.tap(removeButton);
       await tester.pumpAndSettle();
