@@ -273,7 +273,11 @@ void main() {
       await tester.tap(find.byKey(const Key('save-entry-button')));
       await tester.pumpAndSettle();
 
-      // The detail sheet remains open after saving the entry.
+      // Reopen the detail sheet so it reflects the updated parent watchlist state.
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('watchlist-row-RELIANCE')));
+      await tester.pumpAndSettle();
       expect(find.text('₹1000.00'), findsOneWidget);
       expect(find.text('₹880.00'), findsOneWidget);
       expect(find.text('₹1120.00'), findsOneWidget);
