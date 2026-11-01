@@ -57,6 +57,36 @@ describe('FirebaseAdminService', () => {
     );
   });
 
+  it('returns an access token from configured Firebase credentials', async () => {
+    const service = new FirebaseAdminService();
+    (
+      service as unknown as {
+        credential: { getAccessToken: () => Promise<{ access_token: string }> };
+      }
+    ).credential = {
+      getAccessToken: vi.fn(async () => ({
+        access_token: 'test-access-token',
+      })),
+    };
+
+    await expect(service.getAccessToken()).resolves.toBe('test-access-token');
+  });
+
+  it('rejects Firebase credentials that do not return an access token', async () => {
+    const service = new FirebaseAdminService();
+    (
+      service as unknown as {
+        credential: { getAccessToken: () => Promise<{ access_token: string }> };
+      }
+    ).credential = {
+      getAccessToken: vi.fn(async () => ({ access_token: '' })),
+    };
+
+    await expect(service.getAccessToken()).rejects.toThrow(
+      'Firebase credentials did not return an access token',
+    );
+  });
+
   it('requires both a project ID and a server credential source', () => {
     for (const key of environmentKeys) delete process.env[key];
     process.env.FIREBASE_PROJECT_ID = 'test-project';

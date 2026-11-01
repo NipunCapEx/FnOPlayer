@@ -131,6 +131,23 @@ describe('Snapshot validation rejects stale and invalid market data', () => {
     expect(harness.alerts).toHaveLength(0);
   });
 
+  it('records a closing snapshot outside the live freshness window without emitting alerts', async () => {
+    const harness = createHarness(1080);
+    const previousSession = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    harness.setSnapshot(
+      snapshot({
+        exchangeTimestamp: previousSession,
+        fetchedAt: now,
+      }),
+    );
+
+    await harness.monitor.runOnce(true);
+
+    expect(harness.assessments).toHaveLength(1);
+    expect(harness.alerts).toHaveLength(0);
+    expect(harness.repository.recordAssessment).toHaveBeenCalled();
+  });
+
   it("applies each strategy's configured thresholds during monitoring", async () => {
     const harness = createHarness(1080);
     vi.mocked(harness.repository.listActiveStrategies).mockResolvedValueOnce([
@@ -635,7 +652,7 @@ describe('Indian equity market schedule', () => {
 });
 
 describe('PollingWorker', () => {
-  it('does not poll outside the configured monitoring window', async () => {
+  it('fetches closing snapshots outside market hours without live alerts', async () => {
     const runOnce = vi.fn(async () => {});
     const worker = new PollingWorker({ runOnce } as unknown as RiskMonitor, {
       now: () => now,
@@ -643,17 +660,14 @@ describe('PollingWorker', () => {
     });
 
     await worker.tick();
-    expect(runOnce).not.toHaveBeenCalled();
+    expect(runOnce).toHaveBeenCalledWith(true);
     expect(worker.getDiagnostics()).toMatchObject({
       started: false,
       running: false,
-      lastCycleStartedAt: null,
-      lastCycleCompletedAt: null,
-      lastCycleStatus: 'skipped_outside_market_hours',
+      lastCycleStartedAt: now.toISOString(),
+      lastCycleStatus: 'succeeded',
       consecutiveFailures: 0,
       lastCycleFailureAt: null,
-      lastSuccessfulCycleAt: null,
-      lastRecoveryAt: null,
     });
   });
 
@@ -775,12 +789,13 @@ describe('PollingWorker', () => {
 
       worker.start();
       worker.start();
+      // One immediate startup sync plus the first scheduled polling cycle.
       await vi.advanceTimersByTimeAsync(1000);
-      expect(runOnce).toHaveBeenCalledOnce();
+      expect(runOnce).toHaveBeenCalledTimes(2);
 
       worker.stop();
       await vi.advanceTimersByTimeAsync(2000);
-      expect(runOnce).toHaveBeenCalledOnce();
+      expect(runOnce).toHaveBeenCalledTimes(2);
     } finally {
       vi.useRealTimers();
     }
@@ -802,14 +817,15 @@ describe('PollingWorker', () => {
       });
 
       worker.start();
+      // The immediate startup sync fails; the scheduled cycle retries it.
       await vi.advanceTimersByTimeAsync(1000);
-      expect(runOnce).toHaveBeenCalledOnce();
+      expect(runOnce).toHaveBeenCalledTimes(2);
       expect(onError).toHaveBeenCalledWith(
         expect.objectContaining({ message: 'temporary provider failure' }),
       );
 
       await vi.advanceTimersByTimeAsync(1000);
-      expect(runOnce).toHaveBeenCalledTimes(2);
+      expect(runOnce).toHaveBeenCalledTimes(3);
       expect(onError).toHaveBeenCalledOnce();
       worker.stop();
     } finally {

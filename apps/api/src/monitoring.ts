@@ -175,7 +175,7 @@ export class RiskMonitor {
       .sort((a, b) => a.symbol.localeCompare(b.symbol));
   }
 
-  async runOnce(): Promise<void> {
+  async runOnce(allowClosedMarketSnapshot = false): Promise<void> {
     const cycleStartedAt = this.now();
     const strategies = (await this.repository.listActiveStrategies()).filter(
       (strategy) =>
@@ -207,7 +207,9 @@ export class RiskMonitor {
       }
 
       const validation = validateSnapshot(snapshot, checkedAt, {
-        maxAgeMs: this.maxSnapshotAgeMs,
+        maxAgeMs: allowClosedMarketSnapshot
+          ? 7 * 24 * 60 * 60 * 1000
+          : this.maxSnapshotAgeMs,
         maxFutureSkewMs: DEFAULT_FRESHNESS_POLICY.maxFutureSkewMs,
       });
       if (!validation.valid) {
@@ -297,17 +299,21 @@ export class RiskMonitor {
           assessment,
           snapshot,
         );
-        await this.evaluateRiskAlert(strategy, assessment, checkedAt);
-        await this.evaluateVolatility(
-          strategy,
-          snapshot,
-          assessment,
-          checkedAt,
-        );
-        await this.evaluateDailyMove(strategy, snapshot, checkedAt);
+        // Closing snapshots keep the dashboard useful outside trading hours,
+        // but must never generate live-risk or volatility alerts.
+        if (!allowClosedMarketSnapshot) {
+          await this.evaluateRiskAlert(strategy, assessment, checkedAt);
+          await this.evaluateVolatility(
+            strategy,
+            snapshot,
+            assessment,
+            checkedAt,
+          );
+          await this.evaluateDailyMove(strategy, snapshot, checkedAt);
+        }
       }
     }
-    await this.flushPendingAlerts();
+    if (!allowClosedMarketSnapshot) await this.flushPendingAlerts();
   }
 
   private async flushPendingAlerts(): Promise<void> {
@@ -702,6 +708,18 @@ export class PollingWorker {
   start(): void {
     if (this.timer) return;
     const intervalMs = this.options.intervalMs ?? 5 * 60 * 1000;
+    // Sync immediately on startup so a first launch outside market hours can
+    // still populate the watchlist with the latest closing snapshot.
+    void this.tick().catch((error: unknown) => {
+      if (this.options.onError) {
+        this.options.onError(error);
+      } else {
+        console.error(
+          'F&O monitoring cycle failed; will retry next interval.',
+          error,
+        );
+      }
+    });
     this.timer = setInterval(() => {
       // A transient provider, Firestore, or notification failure must not
       // become an unhandled rejection that destabilizes the NestJS process.
@@ -722,10 +740,7 @@ export class PollingWorker {
     if (this.running) return;
     const now = this.options.now?.() ?? new Date();
     const isOpen = this.options.isMonitoringWindow ?? isIndianEquityMarketOpen;
-    if (!isOpen(now)) {
-      this.lastCycleStatus = 'skipped_outside_market_hours';
-      return;
-    }
+    const marketClosed = !isOpen(now);
     this.running = true;
     this.activeCycleFinished = new Promise<void>((resolve) => {
       this.finishActiveCycle = resolve;
@@ -734,7 +749,10 @@ export class PollingWorker {
     this.lastCycleStatus = 'running';
     let recovered = false;
     try {
-      await this.monitor.runOnce();
+      // Fetch a closing snapshot at startup and on scheduled polls even when
+      // the exchange is closed. Validation allows older exchange timestamps
+      // only for this path; live alert evaluation remains disabled.
+      await this.monitor.runOnce(marketClosed);
       recovered = this.consecutiveFailures > 0;
       this.lastCycleStatus = 'succeeded';
       this.consecutiveFailures = 0;
