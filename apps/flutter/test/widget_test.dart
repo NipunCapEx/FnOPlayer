@@ -251,17 +251,16 @@ void main() {
         (tester) async {
       await tester.pumpWidget(const FOPlayerApp(prototypeMode: true));
 
-      expect(find.text('DATA STALE'), findsOneWidget);
-      expect(
-        find.text('Snapshot is stale. No actionable risk state is shown.'),
-        findsOneWidget,
-      );
-      expect(find.text('Movement unavailable'), findsOneWidget);
+      expect(find.text('STALE'), findsOneWidget);
+      expect(find.text('Movement unavailable'), findsNothing);
+      expect(find.text('—'), findsWidgets);
     });
 
     testWidgets('entry edit recalculates boundaries for the selected ticker',
         (tester) async {
       await tester.pumpWidget(const FOPlayerApp(prototypeMode: true));
+      await tester.tap(find.byKey(const Key('watchlist-row-RELIANCE')));
+      await tester.pumpAndSettle();
       final editButton = find.widgetWithText(TextButton, 'Edit entry').first;
       await tester.ensureVisible(editButton);
       await tester.pumpAndSettle();
@@ -325,13 +324,10 @@ void main() {
     testWidgets('adds a supported symbol with a positive entry price',
         (tester) async {
       await tester.pumpWidget(const FOPlayerApp(prototypeMode: true));
-      final removeButton = find.byKey(const Key('remove-RELIANCE'));
-      await tester.scrollUntilVisible(
-        removeButton,
-        250,
-        scrollable: find.byType(Scrollable).first,
-      );
+      await tester.tap(find.byKey(const Key('watchlist-row-RELIANCE')));
       await tester.pumpAndSettle();
+      final removeButton = find.byKey(const Key('remove-RELIANCE'));
+      await tester.ensureVisible(removeButton);
       await tester.tap(removeButton);
       await tester.pumpAndSettle();
 
