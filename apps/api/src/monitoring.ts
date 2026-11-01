@@ -313,7 +313,7 @@ export class RiskMonitor {
         }
       }
     }
-    await this.flushPendingAlerts();
+    if (!allowClosedMarketSnapshot) await this.flushPendingAlerts();
   }
 
   private async flushPendingAlerts(): Promise<void> {
@@ -708,6 +708,18 @@ export class PollingWorker {
   start(): void {
     if (this.timer) return;
     const intervalMs = this.options.intervalMs ?? 5 * 60 * 1000;
+    // Sync immediately on startup so a first launch outside market hours can
+    // still populate the watchlist with the latest closing snapshot.
+    void this.tick().catch((error: unknown) => {
+      if (this.options.onError) {
+        this.options.onError(error);
+      } else {
+        console.error(
+          'F&O monitoring cycle failed; will retry next interval.',
+          error,
+        );
+      }
+    });
     this.timer = setInterval(() => {
       // A transient provider, Firestore, or notification failure must not
       // become an unhandled rejection that destabilizes the NestJS process.
