@@ -1015,28 +1015,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                   ),
                 const SizedBox(height: 16),
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: [
-                    _SummaryTile(
-                      label: 'Tracked instruments',
-                      value: '${instruments.length}',
-                      icon: Icons.show_chart,
-                    ),
-                    _SummaryTile(
-                      label: widget.apiClient == null
-                          ? 'Valid demo snapshots'
-                          : 'Fresh market snapshots',
-                      value: '$activeCount',
-                      icon: Icons.verified_outlined,
-                    ),
-                    _SummaryTile(
-                      label: 'Boundary breaches',
-                      value: '$breachedCount',
-                      icon: Icons.warning_amber_rounded,
-                    ),
-                  ],
+                SingleChildScrollView(
+                  key: const Key('dashboard-summary-row'),
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _SummaryTile(
+                        width: 112,
+                        label: 'Tracked',
+                        value: '${instruments.length}',
+                        icon: Icons.show_chart,
+                      ),
+                      const SizedBox(width: 8),
+                      _SummaryTile(
+                        width: 128,
+                        label: widget.apiClient == null ? 'Demo quotes' : 'Fresh quotes',
+                        value: '$activeCount / ${instruments.length}',
+                        icon: Icons.verified_outlined,
+                      ),
+                      const SizedBox(width: 8),
+                      _SummaryTile(
+                        width: 112,
+                        label: 'Breaches',
+                        value: '$breachedCount',
+                        icon: Icons.warning_amber_rounded,
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 20),
                 Row(
@@ -1067,40 +1072,44 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                     ),
                   ),
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final columns = constraints.maxWidth >= 850
-                        ? 2
-                        : constraints.maxWidth >= 560
-                            ? 2
-                            : 1;
-                    final cardWidth =
-                        (constraints.maxWidth - (columns - 1) * 14) / columns;
-                    return Wrap(
-                      spacing: 14,
-                      runSpacing: 14,
-                      children: [
-                        for (final instrument in instruments)
-                          SizedBox(
-                            width: cardWidth,
-                            child: InstrumentCard(
-                              instrument: instrument,
-                              onEditEntry: () => _editEntry(instrument),
-                              onEditEntryDate: () => _editEntryDate(instrument),
-                              onEditExpiry: () => _editExpiry(instrument),
-                              onEditThresholds: () =>
-                                  _editThresholds(instrument),
-                              onNotificationsChanged: widget.apiClient == null
-                                  ? null
-                                  : (enabled) => _setNotificationsEnabled(
-                                      instrument, enabled),
-                              onRemove: () => _removeInstrument(instrument),
-                              isDemo: widget.apiClient == null,
+                Column(
+                  children: [
+                    for (final instrument in instruments)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: InstrumentWatchlistRow(
+                          instrument: instrument,
+                          isDemo: widget.apiClient == null,
+                          onTap: () => showModalBottomSheet<void>(
+                            context: context,
+                            isScrollControlled: true,
+                            useSafeArea: true,
+                            showDragHandle: true,
+                            builder: (sheetContext) => FractionallySizedBox(
+                              heightFactor: 0.92,
+                              child: SingleChildScrollView(
+                                padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+                                child: InstrumentCard(
+                                  instrument: instrument,
+                                  onEditEntry: () => _editEntry(instrument),
+                                  onEditEntryDate: () => _editEntryDate(instrument),
+                                  onEditExpiry: () => _editExpiry(instrument),
+                                  onEditThresholds: () => _editThresholds(instrument),
+                                  onNotificationsChanged: widget.apiClient == null
+                                      ? null
+                                      : (enabled) => _setNotificationsEnabled(instrument, enabled),
+                                  onRemove: () {
+                                    Navigator.of(sheetContext).pop();
+                                    _removeInstrument(instrument);
+                                  },
+                                  isDemo: widget.apiClient == null,
+                                ),
+                              ),
                             ),
                           ),
-                      ],
-                    );
-                  },
+                        ),
+                      ),
+                  ],
                 ),
                 const SizedBox(height: 24),
                 Text(
@@ -1578,35 +1587,177 @@ class _SummaryTile extends StatelessWidget {
     required this.label,
     required this.value,
     required this.icon,
+    this.width = 220,
   });
 
   final String label;
   final String value;
   final IconData icon;
+  final double width;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 220,
+      width: width,
       child: Card(
+        margin: EdgeInsets.zero,
         child: Padding(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
           child: Row(
             children: [
-              Icon(icon, size: 28),
-              const SizedBox(width: 12),
+              Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
+              const SizedBox(width: 8),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(label, style: Theme.of(context).textTheme.bodySmall),
+                    Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.labelSmall,
+                    ),
+                    const SizedBox(height: 2),
                     Text(
                       value,
-                      style: Theme.of(context).textTheme.headlineSmall,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
                     ),
                   ],
                 ),
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class InstrumentWatchlistRow extends StatelessWidget {
+  const InstrumentWatchlistRow({
+    required this.instrument,
+    required this.onTap,
+    this.isDemo = false,
+    super.key,
+  });
+
+  final Instrument instrument;
+  final VoidCallback onTap;
+  final bool isDemo;
+
+  @override
+  Widget build(BuildContext context) {
+    final stale = instrument.isCurrentlyStale || !instrument.hasSpotPrice;
+    final level = instrument.riskLevel;
+    final color = stale
+        ? Colors.blueGrey
+        : switch (level) {
+            RiskLevel.normal => Colors.green.shade700,
+            RiskLevel.caution => Colors.orange.shade800,
+            RiskLevel.critical => Colors.deepOrange.shade800,
+            RiskLevel.breached => Colors.red.shade800,
+          };
+    final status = stale
+        ? (instrument.hasSpotPrice ? 'STALE' : 'NO DATA')
+        : switch (level) {
+            RiskLevel.normal => 'NORMAL',
+            RiskLevel.caution => 'CAUTION',
+            RiskLevel.critical => 'CRITICAL',
+            RiskLevel.breached => 'BREACHED',
+          };
+    final movement = stale
+        ? '—'
+        : '${instrument.movementPercent >= 0 ? '+' : ''}${instrument.movementPercent.toStringAsFixed(2)}%';
+
+    return Card(
+      key: Key('watchlist-row-${instrument.symbol}'),
+      margin: EdgeInsets.zero,
+      color: stale ? Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.62) : null,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+          child: Row(
+            children: [
+              Container(
+                width: 3,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                flex: 5,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      instrument.symbol,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            color: stale ? Colors.blueGrey.shade700 : null,
+                          ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      isDemo ? 'DEMO' : stale ? (instrument.hasSpotPrice ? 'Last quote' : 'Awaiting quote') : 'Spot price',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.blueGrey),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                flex: 4,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      instrument.hasSpotPrice ? '₹${instrument.spotPrice.toStringAsFixed(2)}' : 'Unavailable',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: stale ? Colors.blueGrey : null,
+                          ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      movement,
+                      style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w800),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                constraints: const BoxConstraints(maxWidth: 76),
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(7),
+                ),
+                child: Text(
+                  status,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.w800),
+                ),
+              ),
+              const SizedBox(width: 2),
+              Icon(Icons.chevron_right, size: 20, color: stale ? Colors.blueGrey : Theme.of(context).colorScheme.onSurfaceVariant),
             ],
           ),
         ),
