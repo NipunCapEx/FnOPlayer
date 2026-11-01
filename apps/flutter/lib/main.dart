@@ -423,6 +423,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool _hasLoadedPersistedWatchlist = false;
   bool _dashboardLoading = false;
   String? _dashboardError;
+  String? _marketDataDiagnostic;
   Timer? _freshnessTimer;
   Timer? _snapshotRefreshTimer;
   NotificationRegistrationService? _notificationRegistration;
@@ -513,6 +514,56 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.dispose();
   }
 
+  Future<void> _refreshMarketDataDiagnostics() async {
+    final apiClient = widget.apiClient;
+    if (apiClient == null) return;
+    try {
+      final health = await apiClient.getHealth();
+      final readiness = health['monitoringReadiness'];
+      final worker = readiness is Map<String, dynamic> ? readiness['worker'] : null;
+      final freshness = readiness is Map<String, dynamic> ? readiness['marketDataFreshness'] : null;
+      var message = 'Market feed status is not yet available.';
+      if (freshness is List && freshness.isNotEmpty) {
+        final records = freshness.whereType<Map<String, dynamic>>().toList();
+        final freshCount = records.where((item) => item['status'] == 'fresh').length;
+        final failures = records
+            .where((item) => item['status'] != 'fresh')
+            .map((item) => item['reason'])
+            .whereType<String>()
+            .where((reason) => reason.isNotEmpty)
+            .toSet()
+            .toList();
+        if (freshCount == records.length && records.isNotEmpty) {
+          message = 'Market feed healthy · $freshCount fresh symbol snapshots.';
+        } else if (failures.isNotEmpty) {
+          message = failures.take(2).join(' · ');
+        } else {
+          message = 'Market feed has no fresh snapshots yet.';
+        }
+      } else if (worker is Map<String, dynamic>) {
+        if (worker['started'] != true) {
+          message = 'Market monitor is not running. Check Firebase server credentials and deployment configuration.';
+        } else if (worker['lastCycleStatus'] == 'skipped_outside_market_hours') {
+          message = 'Outside configured market hours. Fresh quotes resume during the next market session.';
+        } else if (worker['lastCycleStatus'] == 'never_run') {
+          message = 'Market monitor has not completed its first cycle yet.';
+        } else if (worker['lastCycleStatus'] == 'failed') {
+          message = 'The last market-monitoring cycle failed. Check the backend health diagnostics.';
+        } else {
+          message = 'No validated market snapshots have been reported by the backend yet.';
+        }
+      }
+      if (mounted && _marketDataDiagnostic != message) {
+        setState(() => _marketDataDiagnostic = message);
+      }
+    } catch (_) {
+      if (mounted && _marketDataDiagnostic == null) {
+        setState(() => _marketDataDiagnostic =
+            'Feed diagnostics could not be reached. Check the API deployment and /health endpoint.');
+      }
+    }
+  }
+
   void _refreshSnapshotFreshness() {
     if (!mounted || widget.apiClient == null) return;
     final refreshed = instruments
@@ -591,6 +642,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _hasLoadedPersistedWatchlist = true;
         _dashboardLoading = false;
       });
+      unawaited(_refreshMarketDataDiagnostics());
       final notificationRegistration = _notificationRegistration;
       if (notificationRegistration != null) {
         unawaited(notificationRegistration.syncStrategies(activeStrategies));
@@ -1008,6 +1060,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             child: Text(
                               'Market prices are shown only when a validated backend snapshot is available. '
                               'Missing or older-than-10-minute snapshots are marked stale. This app does not place trades.',
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                if (_marketDataDiagnostic != null && widget.apiClient != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Container(
+                      key: const Key('market-data-diagnostic'),
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.55),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.blueGrey.withValues(alpha: 0.22)),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(Icons.sensors_outlined, size: 18, color: Colors.blueGrey),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _marketDataDiagnostic!,
+                              style: Theme.of(context).textTheme.bodySmall,
                             ),
                           ),
                         ],
