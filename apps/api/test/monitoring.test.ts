@@ -635,7 +635,7 @@ describe('Indian equity market schedule', () => {
 });
 
 describe('PollingWorker', () => {
-  it('does not poll outside the configured monitoring window', async () => {
+  it('fetches closing snapshots outside market hours without live alerts', async () => {
     const runOnce = vi.fn(async () => {});
     const worker = new PollingWorker({ runOnce } as unknown as RiskMonitor, {
       now: () => now,
@@ -643,17 +643,14 @@ describe('PollingWorker', () => {
     });
 
     await worker.tick();
-    expect(runOnce).not.toHaveBeenCalled();
+    expect(runOnce).toHaveBeenCalledWith(true);
     expect(worker.getDiagnostics()).toMatchObject({
       started: false,
       running: false,
-      lastCycleStartedAt: null,
-      lastCycleCompletedAt: null,
-      lastCycleStatus: 'skipped_outside_market_hours',
+      lastCycleStartedAt: now.toISOString(),
+      lastCycleStatus: 'succeeded',
       consecutiveFailures: 0,
       lastCycleFailureAt: null,
-      lastSuccessfulCycleAt: null,
-      lastRecoveryAt: null,
     });
   });
 
