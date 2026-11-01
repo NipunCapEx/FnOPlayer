@@ -1081,8 +1081,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     child: Container(
                       key: const Key('market-data-diagnostic'),
                       width: double.infinity,
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 10),
                       decoration: BoxDecoration(
                         color: Theme.of(context)
                             .colorScheme
