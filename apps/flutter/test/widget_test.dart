@@ -274,8 +274,9 @@ void main() {
       await tester.pumpAndSettle();
 
       // Dismiss the modal detail sheet, then reopen it with updated watchlist state.
-      Navigator.of(tester.element(find.byKey(const Key('watchlist-row-RELIANCE'))))
-          .pop();
+      Navigator.of(
+        tester.element(find.byKey(const Key('watchlist-row-RELIANCE'))),
+      ).pop();
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('watchlist-row-RELIANCE')));
       await tester.pumpAndSettle();
