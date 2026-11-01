@@ -851,16 +851,22 @@ describe('marketDataFailureReason', () => {
       ),
     ).toBe('provider returned incomplete quote data');
     expect(
-      marketDataFailureReason(new Error('Yahoo Finance request failed with HTTP 502')),
+      marketDataFailureReason(
+        new Error('Yahoo Finance request failed with HTTP 502'),
+      ),
     ).toBe('provider server error (HTTP 5xx)');
     expect(
-      marketDataFailureReason(new Error('Yahoo Finance request could not be completed')),
+      marketDataFailureReason(
+        new Error('Yahoo Finance request could not be completed'),
+      ),
     ).toBe('provider connection failed');
     expect(
       marketDataFailureReason(new Error('Yahoo Finance returned no chart data')),
     ).toBe('provider returned no chart data');
     expect(
-      marketDataFailureReason(new Error('FOPLAYER_YAHOO_CHART_BASE_URL is invalid')),
+      marketDataFailureReason(
+        new Error('FOPLAYER_YAHOO_CHART_BASE_URL is invalid'),
+      ),
     ).toBe('market-data provider configuration is invalid');
     expect(
       marketDataFailureReason(new Error('private endpoint token=secret')),
