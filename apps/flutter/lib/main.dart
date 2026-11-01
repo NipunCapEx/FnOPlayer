@@ -1790,11 +1790,11 @@ class InstrumentWatchlistRow extends StatelessWidget {
         : instrument.isMarketClosed
             ? 'MARKET CLOSED'
             : switch (level) {
-            RiskLevel.normal => 'NORMAL',
-            RiskLevel.caution => 'CAUTION',
-            RiskLevel.critical => 'CRITICAL',
-            RiskLevel.breached => 'BREACHED',
-          };
+                RiskLevel.normal => 'NORMAL',
+                RiskLevel.caution => 'CAUTION',
+                RiskLevel.critical => 'CRITICAL',
+                RiskLevel.breached => 'BREACHED',
+              };
     final movement = stale
         ? '—'
         : '${instrument.movementPercent >= 0 ? '+' : ''}${instrument.movementPercent.toStringAsFixed(2)}%';
