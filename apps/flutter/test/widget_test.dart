@@ -273,8 +273,9 @@ void main() {
       await tester.tap(find.byKey(const Key('save-entry-button')));
       await tester.pumpAndSettle();
 
-      // Reopen the detail sheet so it reflects the updated parent watchlist state.
-      await tester.pageBack();
+      // Dismiss the modal detail sheet, then reopen it with updated watchlist state.
+      Navigator.of(tester.element(find.byKey(const Key('watchlist-row-RELIANCE'))))
+          .pop();
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('watchlist-row-RELIANCE')));
       await tester.pumpAndSettle();
