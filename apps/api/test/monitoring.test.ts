@@ -861,7 +861,9 @@ describe('marketDataFailureReason', () => {
       ),
     ).toBe('provider connection failed');
     expect(
-      marketDataFailureReason(new Error('Yahoo Finance returned no chart data')),
+      marketDataFailureReason(
+        new Error('Yahoo Finance returned no chart data'),
+      ),
     ).toBe('provider returned no chart data');
     expect(
       marketDataFailureReason(
