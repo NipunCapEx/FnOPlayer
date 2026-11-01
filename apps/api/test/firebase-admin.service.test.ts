@@ -59,8 +59,14 @@ describe('FirebaseAdminService', () => {
 
   it('returns an access token from configured Firebase credentials', async () => {
     const service = new FirebaseAdminService();
-    (service as unknown as { credential: { getAccessToken: () => Promise<{ access_token: string }> } }).credential = {
-      getAccessToken: vi.fn(async () => ({ access_token: 'test-access-token' })),
+    (
+      service as unknown as {
+        credential: { getAccessToken: () => Promise<{ access_token: string }> };
+      }
+    ).credential = {
+      getAccessToken: vi.fn(async () => ({
+        access_token: 'test-access-token',
+      })),
     };
 
     await expect(service.getAccessToken()).resolves.toBe('test-access-token');
@@ -68,7 +74,11 @@ describe('FirebaseAdminService', () => {
 
   it('rejects Firebase credentials that do not return an access token', async () => {
     const service = new FirebaseAdminService();
-    (service as unknown as { credential: { getAccessToken: () => Promise<{ access_token: string }> } }).credential = {
+    (
+      service as unknown as {
+        credential: { getAccessToken: () => Promise<{ access_token: string }> };
+      }
+    ).credential = {
       getAccessToken: vi.fn(async () => ({ access_token: '' })),
     };
 
