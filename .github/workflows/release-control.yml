@@ -48,6 +48,7 @@ jobs:
     uses: ./.github/workflows/android-release.yml
     with:
       validation: ${{ inputs.validation }}
+    secrets: inherit
 
   android_publish:
     name: Android - Publish to Google Play
