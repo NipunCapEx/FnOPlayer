@@ -772,12 +772,13 @@ describe('PollingWorker', () => {
 
       worker.start();
       worker.start();
+      // One immediate startup sync plus the first scheduled polling cycle.
       await vi.advanceTimersByTimeAsync(1000);
-      expect(runOnce).toHaveBeenCalledOnce();
+      expect(runOnce).toHaveBeenCalledTimes(2);
 
       worker.stop();
       await vi.advanceTimersByTimeAsync(2000);
-      expect(runOnce).toHaveBeenCalledOnce();
+      expect(runOnce).toHaveBeenCalledTimes(2);
     } finally {
       vi.useRealTimers();
     }
@@ -799,14 +800,15 @@ describe('PollingWorker', () => {
       });
 
       worker.start();
+      // The immediate startup sync fails; the scheduled cycle retries it.
       await vi.advanceTimersByTimeAsync(1000);
-      expect(runOnce).toHaveBeenCalledOnce();
+      expect(runOnce).toHaveBeenCalledTimes(2);
       expect(onError).toHaveBeenCalledWith(
         expect.objectContaining({ message: 'temporary provider failure' }),
       );
 
       await vi.advanceTimersByTimeAsync(1000);
-      expect(runOnce).toHaveBeenCalledTimes(2);
+      expect(runOnce).toHaveBeenCalledTimes(3);
       expect(onError).toHaveBeenCalledOnce();
       worker.stop();
     } finally {
