@@ -852,6 +852,6 @@ describe('marketDataFailureReason', () => {
     ).toBe('provider returned incomplete quote data');
     expect(
       marketDataFailureReason(new Error('private endpoint token=secret')),
-    ).toBe('market data provider failed (unclassified error)');
+    ).toBe('market data provider failed');
   });
 });
