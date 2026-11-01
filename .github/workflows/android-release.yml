@@ -1,15 +1,8 @@
 name: Android Release
 
 on:
-  push:
-    branches: [master]
   workflow_dispatch:
     inputs:
-      publish:
-        description: Publish the signed App Bundle to both internal and closed testing tracks
-        type: boolean
-        required: true
-        default: false
 
 permissions:
   contents: read
@@ -21,8 +14,8 @@ concurrency:
 jobs:
   release:
     name: Build signed APK and Play Store App Bundle
-    # Publish master commits only after all required CI check-runs for that exact SHA succeed.
-    # Manual runs retain the existing opt-in publication behavior.
+    # This workflow is a manual build-only operation. Publishing and Render deployment
+    # are separate manually triggered workflows so each can be retried independently.
     if: ${{ github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/master' }}
     runs-on: ubuntu-latest
     permissions:
@@ -408,12 +401,3 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Publish to Google Play internal and closed testing
-        if: ${{ github.event_name == 'push' || inputs.publish }}
-        uses: r0adkll/upload-google-play@v1
-        with:
-          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
-          packageName: ${{ vars.ANDROID_APPLICATION_ID }}
-          releaseFiles: apps/flutter/build/app/outputs/bundle/release/app-release.aab
-          tracks: internal,alpha
-          status: completed

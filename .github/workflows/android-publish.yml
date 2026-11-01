@@ -1,0 +1,68 @@
+name: Publish Android to Google Play (Manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_run_id:
+        description: GitHub Actions run ID of the successful Android build
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: android-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish existing Android artifact
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Validate build run ID
+        env:
+          BUILD_RUN_ID: ${{ inputs.build_run_id }}
+        run: |
+          set -euo pipefail
+          [[ "$BUILD_RUN_ID" =~ ^[0-9]+$ ]] || { echo "::error::build_run_id must be a numeric GitHub Actions run ID."; exit 1; }
+
+      - name: Download artifact from selected build run
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.build_run_id }}
+          path: release
+
+      - name: Select and validate App Bundle
+        run: |
+          set -euo pipefail
+          mapfile -t bundles < <(find release -type f -name '*.aab' -print)
+          if [ "${#bundles[@]}" -ne 1 ]; then
+            echo "::error::Expected exactly one .aab artifact from build run ${{ inputs.build_run_id }}; found ${#bundles[@]}."
+            find release -maxdepth 4 -type f -print || true
+            exit 1
+          fi
+          mkdir -p publish
+          cp "${bundles[0]}" publish/app-release.aab
+          test -s publish/app-release.aab
+          echo "Selected a single App Bundle from the specified build run."
+
+      - name: Validate Google Play configuration
+        env:
+          PLAY_SERVICE_ACCOUNT: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          set -euo pipefail
+          test -n "$PLAY_SERVICE_ACCOUNT" || { echo "::error::Missing Actions secret GOOGLE_PLAY_SERVICE_ACCOUNT_JSON."; exit 1; }
+
+      - name: Publish to Google Play internal and closed testing
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: ${{ vars.ANDROID_APPLICATION_ID }}
+          releaseFiles: publish/app-release.aab
+          tracks: internal,alpha
+          status: completed
