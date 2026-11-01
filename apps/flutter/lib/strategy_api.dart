@@ -327,6 +327,22 @@ class StrategyApiClient {
 
   bool get isConfigured => _baseUrl.startsWith('https://');
 
+  /// Public, sanitized runtime diagnostics; never includes credentials or raw provider payloads.
+  Future<Map<String, dynamic>> getHealth() async {
+    final base = Uri.parse(_baseUrl.endsWith('/') ? _baseUrl : '$_baseUrl/');
+    final response = await http.get(base.resolve('health')).timeout(
+          const Duration(seconds: 8),
+        );
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw FormatException('Health check failed (${response.statusCode}).');
+    }
+    final decoded = jsonDecode(response.body);
+    if (decoded is! Map<String, dynamic>) {
+      throw const FormatException('Invalid health response.');
+    }
+    return decoded;
+  }
+
   Future<UserDashboard> getDashboard() async {
     final response = await _request('GET', '/api/dashboard');
     if (response is! Map<String, dynamic>) {

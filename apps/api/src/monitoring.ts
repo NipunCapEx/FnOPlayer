@@ -188,7 +188,11 @@ export class RiskMonitor {
       let snapshot: MarketSnapshot;
       try {
         snapshot = await this.provider.getSnapshot(symbol);
-      } catch {
+      } catch (error) {
+        // Keep diagnostics useful without leaking URLs, credentials, or raw
+        // upstream payloads. The provider's known error classes are safe to
+        // expose and distinguish blocking, rate limiting, timeouts and bad data.
+        const reason = marketDataFailureReason(error);
         this.marketDataDiagnostics.set(symbol, {
           symbol,
           status: 'unavailable',
@@ -196,13 +200,9 @@ export class RiskMonitor {
           fetchedAt: null,
           exchangeTimestamp: null,
           lastCheckedAt: checkedAt.toISOString(),
-          reason: 'market data provider failed',
+          reason,
         });
-        await this.repository.recordUnavailable(
-          symbol,
-          'market data provider failed',
-          checkedAt,
-        );
+        await this.repository.recordUnavailable(symbol, reason, checkedAt);
         continue;
       }
 
@@ -769,6 +769,24 @@ export class PollingWorker {
     // graceful application shutdown. Clearing the timer prevents new cycles.
     await this.activeCycleFinished;
   }
+}
+
+export function marketDataFailureReason(error: unknown): string {
+  const message = error instanceof Error ? error.message : '';
+  if (/HTTP 429\b/.test(message))
+    return 'provider rate limited requests (HTTP 429)';
+  if (/HTTP 401\b|HTTP 403\b/.test(message))
+    return 'provider denied access (HTTP response)';
+  if (/HTTP 5\d\d\b/.test(message)) return 'provider server error (HTTP 5xx)';
+  if (/timed out/i.test(message)) return 'provider request timed out';
+  if (/could not be completed/i.test(message))
+    return 'provider connection failed';
+  if (/incomplete quote data/i.test(message))
+    return 'provider returned incomplete quote data';
+  if (/no chart data/i.test(message)) return 'provider returned no chart data';
+  if (/invalid|must be a valid HTTPS URL/i.test(message))
+    return 'market-data provider configuration is invalid';
+  return 'market data provider failed';
 }
 
 function isExpiredStrategy(strategy: Strategy, now: Date): boolean {

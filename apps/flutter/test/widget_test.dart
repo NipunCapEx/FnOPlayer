@@ -251,17 +251,16 @@ void main() {
         (tester) async {
       await tester.pumpWidget(const FOPlayerApp(prototypeMode: true));
 
-      expect(find.text('DATA STALE'), findsOneWidget);
-      expect(
-        find.text('Snapshot is stale. No actionable risk state is shown.'),
-        findsOneWidget,
-      );
-      expect(find.text('Movement unavailable'), findsOneWidget);
+      expect(find.text('STALE'), findsOneWidget);
+      expect(find.text('Movement unavailable'), findsNothing);
+      expect(find.text('—'), findsWidgets);
     });
 
     testWidgets('entry edit recalculates boundaries for the selected ticker',
         (tester) async {
       await tester.pumpWidget(const FOPlayerApp(prototypeMode: true));
+      await tester.tap(find.byKey(const Key('watchlist-row-RELIANCE')));
+      await tester.pumpAndSettle();
       final editButton = find.widgetWithText(TextButton, 'Edit entry').first;
       await tester.ensureVisible(editButton);
       await tester.pumpAndSettle();
@@ -274,6 +273,13 @@ void main() {
       await tester.tap(find.byKey(const Key('save-entry-button')));
       await tester.pumpAndSettle();
 
+      // Dismiss the modal detail sheet, then reopen it with updated watchlist state.
+      Navigator.of(
+        tester.element(find.byKey(const Key('watchlist-row-RELIANCE'))),
+      ).pop();
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('watchlist-row-RELIANCE')));
+      await tester.pumpAndSettle();
       expect(find.text('₹1000.00'), findsOneWidget);
       expect(find.text('₹880.00'), findsOneWidget);
       expect(find.text('₹1120.00'), findsOneWidget);
@@ -309,6 +315,8 @@ void main() {
     testWidgets('rejects non-positive entry values at the dialog boundary',
         (tester) async {
       await tester.pumpWidget(const FOPlayerApp(prototypeMode: true));
+      await tester.tap(find.byKey(const Key('watchlist-row-RELIANCE')));
+      await tester.pumpAndSettle();
       final editButton = find.widgetWithText(TextButton, 'Edit entry').first;
       await tester.ensureVisible(editButton);
       await tester.pumpAndSettle();
@@ -325,18 +333,13 @@ void main() {
     testWidgets('adds a supported symbol with a positive entry price',
         (tester) async {
       await tester.pumpWidget(const FOPlayerApp(prototypeMode: true));
-      final removeButton = find.byKey(const Key('remove-RELIANCE'));
-      await tester.scrollUntilVisible(
-        removeButton,
-        250,
-        scrollable: find.byType(Scrollable).first,
-      );
+      await tester.tap(find.byKey(const Key('watchlist-row-RELIANCE')));
       await tester.pumpAndSettle();
+      final removeButton = find.byKey(const Key('remove-RELIANCE'));
+      await tester.ensureVisible(removeButton);
       await tester.tap(removeButton);
       await tester.pumpAndSettle();
 
-      await tester.drag(find.byType(ListView).first, const Offset(0, 1200));
-      await tester.pumpAndSettle();
       final addButton = find.byKey(const Key('add-instrument-button'));
       expect(addButton, findsOneWidget);
       await tester.tap(addButton);
@@ -356,18 +359,14 @@ void main() {
 
     testWidgets('rejects invalid entry when adding a symbol', (tester) async {
       await tester.pumpWidget(const FOPlayerApp(prototypeMode: true));
+      await tester.tap(find.byKey(const Key('watchlist-row-RELIANCE')));
+      await tester.pumpAndSettle();
       final removeButton = find.byKey(const Key('remove-RELIANCE'));
-      await tester.scrollUntilVisible(
-        removeButton,
-        250,
-        scrollable: find.byType(Scrollable).first,
-      );
+      await tester.ensureVisible(removeButton);
       await tester.pumpAndSettle();
       await tester.tap(removeButton);
       await tester.pumpAndSettle();
 
-      await tester.drag(find.byType(ListView).first, const Offset(0, 1200));
-      await tester.pumpAndSettle();
       final addButton = find.byKey(const Key('add-instrument-button'));
       expect(addButton, findsOneWidget);
       await tester.tap(addButton);
@@ -589,12 +588,10 @@ void main() {
 
     testWidgets('removes a symbol from the active watchlist', (tester) async {
       await tester.pumpWidget(const FOPlayerApp(prototypeMode: true));
+      await tester.tap(find.byKey(const Key('watchlist-row-RELIANCE')));
+      await tester.pumpAndSettle();
       final removeButton = find.byKey(const Key('remove-RELIANCE'));
-      await tester.scrollUntilVisible(
-        removeButton,
-        250,
-        scrollable: find.byType(Scrollable).first,
-      );
+      await tester.ensureVisible(removeButton);
       await tester.pumpAndSettle();
       await tester.tap(removeButton);
       await tester.pumpAndSettle();
