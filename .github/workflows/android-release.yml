@@ -353,10 +353,18 @@ jobs:
           set -euo pipefail
           BASE_VERSION=$(sed -n 's/^version: \([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\).*$/\1/p' pubspec.yaml)
           test -n "$BASE_VERSION"
-          VERSION_CODE=$((RUN_NUMBER * 100 + RUN_ATTEMPT))
-          echo "name=$BASE_VERSION.$RUN_NUMBER" >> "$GITHUB_OUTPUT"
+          # Reusable workflows inherit the caller's run number, which restarted at 1
+          # when Release Control was introduced. Generate a time-based versionCode instead.
+          RELEASE_EPOCH=$(date -u +%s)
+          VERSION_CODE=$(( (RELEASE_EPOCH / 10) * 10 + RUN_ATTEMPT ))
+          VERSION_NAME="$BASE_VERSION.$(date -u +%Y%m%d%H%M).$RUN_ATTEMPT"
+          if [ "$VERSION_CODE" -gt 2100000000 ]; then
+            echo "::error::Generated Android versionCode exceeds Google Play's limit."
+            exit 1
+          fi
+          echo "name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
           echo "code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
-          echo "Release version: $BASE_VERSION.$RUN_NUMBER (versionCode $VERSION_CODE)"
+          echo "Release version: $VERSION_NAME (versionCode $VERSION_CODE)"
 
       - name: Build signed APK for direct testing
         run: flutter build apk --release --build-name="${{ steps.version.outputs.name }}" --build-number="${{ steps.version.outputs.code }}" --dart-define=FOPLAYER_API_BASE_URL="${{ vars.FOPLAYER_API_BASE_URL }}"
