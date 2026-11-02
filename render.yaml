@@ -16,6 +16,9 @@ services:
         value: production
       - key: FIREBASE_PROJECT_ID
         sync: false
+      # Set to the exact existing Firestore database ID; leave the value unset until verified.
+      - key: FIRESTORE_DATABASE_ID
+        sync: false
       - key: FIREBASE_SERVICE_ACCOUNT_JSON
         sync: false
       - key: FIREBASE_ALLOWED_UIDS
@@ -24,6 +27,10 @@ services:
         sync: false
       - key: TELEGRAM_CHAT_ID
         sync: false
+      - key: FOPLAYER_YAHOO_CHART_BASE_URL
+        value: https://query1.finance.yahoo.com/v8/finance/chart
+      - key: FOPLAYER_MARKET_DATA_TIMEOUT_MS
+        value: "10000"
       - key: FOPLAYER_MARKET_HOLIDAYS
         value: ""
       - key: FOPLAYER_MARKET_OPEN
