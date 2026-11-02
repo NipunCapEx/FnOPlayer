@@ -1,3 +1,7 @@
+# FnOPlayer API — Render Blueprint and environment-variable inventory.
+# Required secrets must be set in Render Environment; sync:false never stores values in Git.
+# Firebase Admin requires FIREBASE_PROJECT_ID plus FIREBASE_SERVICE_ACCOUNT_JSON
+# (or a supported Google Application Default Credentials source in the runtime).
 services:
   - type: web
     name: fnoplayer-api
@@ -14,21 +18,38 @@ services:
         value: 22
       - key: NODE_ENV
         value: production
+
+      # Required for authenticated dashboard, Firestore, and Firebase Cloud Messaging.
       - key: FIREBASE_PROJECT_ID
         sync: false
       - key: FIREBASE_SERVICE_ACCOUNT_JSON
         sync: false
+      # Optional allow-list; comma-separated Firebase Auth UIDs. Keep empty to disable Telegram allow-list routing.
       - key: FIREBASE_ALLOWED_UIDS
-        sync: false
+        value: ""
+
+      # Optional notification channel; both values are needed to configure Telegram delivery.
       - key: TELEGRAM_BOT_TOKEN
-        sync: false
+        value: ""
       - key: TELEGRAM_CHAT_ID
-        sync: false
+        value: ""
+
+      # Optional: set only when using a named Firestore database; blank uses the default database.
+      - key: FIRESTORE_DATABASE_ID
+        value: ""
+      # Optional Yahoo-compatible chart endpoint and timeout; defaults are documented here.
+      - key: FOPLAYER_YAHOO_CHART_BASE_URL
+        value: https://query1.finance.yahoo.com/v8/finance/chart
+      - key: FOPLAYER_MARKET_DATA_TIMEOUT_MS
+        value: "10000"
+
+      # Market-session policy. Holidays are comma-separated YYYY-MM-DD values.
       - key: FOPLAYER_MARKET_HOLIDAYS
         value: ""
       - key: FOPLAYER_MARKET_OPEN
         value: "09:15"
       - key: FOPLAYER_MARKET_CLOSE
         value: "15:30"
+      # JSON object keyed by YYYY-MM-DD; e.g. {"2026-11-08":{"open":"18:00","close":"19:00"}}
       - key: FOPLAYER_MARKET_SPECIAL_SESSIONS
         value: "{}"
