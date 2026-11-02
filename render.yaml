@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: foplayer-api
+    name: fnoplayer-api
     runtime: node
     plan: free
     region: singapore
