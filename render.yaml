@@ -1,7 +1,3 @@
-# FnOPlayer API Render Blueprint.
-# Keep this list aligned with the existing Render service; do not replace secret declarations
-# with empty values, as that can overwrite configured values during Blueprint sync.
-# Required secret values are maintained in Render, never committed to Git.
 services:
   - type: web
     name: fnoplayer-api
@@ -18,19 +14,16 @@ services:
         value: 22
       - key: NODE_ENV
         value: production
-      # Firebase Admin credentials (retain the existing Render values).
       - key: FIREBASE_PROJECT_ID
         sync: false
       - key: FIREBASE_SERVICE_ACCOUNT_JSON
         sync: false
-      # Optional access/notification secrets: preserve as secret-backed variables.
       - key: FIREBASE_ALLOWED_UIDS
         sync: false
       - key: TELEGRAM_BOT_TOKEN
         sync: false
       - key: TELEGRAM_CHAT_ID
         sync: false
-      # Market-session settings.
       - key: FOPLAYER_MARKET_HOLIDAYS
         value: ""
       - key: FOPLAYER_MARKET_OPEN
