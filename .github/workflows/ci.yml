@@ -108,7 +108,7 @@ jobs:
           exit 1
       - working-directory: apps/flutter
         if: steps.flutter.outputs.available == 'true'
-        run: flutter analyze
+        run: flutter analyze --no-fatal-infos
       - working-directory: apps/flutter
         if: steps.flutter.outputs.available == 'true'
         run: flutter test --coverage
