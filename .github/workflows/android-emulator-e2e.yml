@@ -28,7 +28,7 @@ jobs:
   android-emulator:
     name: Install, launch and test FnO Players
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 60
     defaults:
       run:
         working-directory: apps/flutter
@@ -57,7 +57,6 @@ jobs:
           flutter create --platforms=android --org com.nipun.finance --project-name fno .
           mkdir -p android/app/src/main/kotlin/com/nipun/finance/fno
           cp tool/android/MainActivity.kt android/app/src/main/kotlin/com/nipun/finance/fno/MainActivity.kt
-          # The negative-path test must never initialize a real Firebase project.
           rm -f android/app/google-services.json
 
       - name: Build debug APK without Firebase project configuration
@@ -67,11 +66,14 @@ jobs:
 
       - name: Run on Android emulator
         uses: reactivecircus/android-emulator-runner@v2
+        env:
+          ANDROID_I_WANT_MY_TCG: "yes"
         with:
-          api-level: 35
+          api-level: 34
           target: google_apis
           arch: x86_64
           profile: pixel_2
+          emulator-boot-timeout: 900
           disable-animations: true
           script: |
             set -euo pipefail
