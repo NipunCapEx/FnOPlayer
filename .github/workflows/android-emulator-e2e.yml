@@ -27,7 +27,7 @@ concurrency:
 jobs:
   android-emulator:
     name: Install, launch and test FnO Players
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     defaults:
       run:
@@ -71,13 +71,13 @@ jobs:
         with:
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           api-level: 34
-          target: google_apis
+          target: default
           arch: x86_64
           profile: pixel_2
           emulator-boot-timeout: 900
           disable-animations: true
           script: >-
-            bash -euo pipefail -c 'cd apps/flutter; mkdir -p artifacts; cleanup(){ adb logcat -d > artifacts/logcat.txt || true; adb exec-out screencap -p > artifacts/final-screen.png || true; }; trap cleanup EXIT; adb install -r build/app/outputs/flutter-apk/app-debug.apk; adb shell monkey -p com.nipun.finance.fno 1; sleep 6; adb exec-out screencap -p > artifacts/installed-app-launch.png; flutter test integration_test -d emulator-5554 --reporter expanded 2>&1 | tee artifacts/integration-test.log'
+            bash -euo pipefail -c 'cd apps/flutter; mkdir -p artifacts; cleanup(){ adb logcat -d > artifacts/logcat.txt || true; adb exec-out screencap -p > artifacts/final-screen.png || true; }; trap cleanup EXIT; adb uninstall com.nipun.finance.fno >/dev/null 2>&1 || true; adb install build/app/outputs/flutter-apk/app-debug.apk; adb shell monkey -p com.nipun.finance.fno 1; sleep 6; adb exec-out screencap -p > artifacts/installed-app-launch.png; flutter test integration_test -d emulator-5554 --reporter expanded 2>&1 | tee artifacts/integration-test.log'
       - name: Upload emulator diagnostics
         if: always()
         uses: actions/upload-artifact@v4
