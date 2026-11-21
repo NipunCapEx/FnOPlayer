@@ -1,0 +1,88 @@
+name: Android Emulator E2E - FnO Players
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - "apps/flutter/**"
+      - ".github/workflows/android-emulator-e2e.yml"
+  push:
+    branches:
+      - master
+    paths:
+      - "apps/flutter/**"
+      - ".github/workflows/android-emulator-e2e.yml"
+  schedule:
+    - cron: "00 21 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-emulator-e2e-fno-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android-emulator:
+    name: Install, launch and test FnO Players
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: apps/flutter
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install Flutter dependencies
+        run: flutter pub get
+
+      - name: Generate Android project scaffolding
+        run: |
+          flutter create --platforms=android --org com.nipun.finance --project-name fno .
+          mkdir -p android/app/src/main/kotlin/com/nipun/finance/fno
+          cp tool/android/MainActivity.kt android/app/src/main/kotlin/com/nipun/finance/fno/MainActivity.kt
+          rm -f android/app/google-services.json
+
+      - name: Build debug APK without Firebase project configuration
+        run: |
+          mkdir -p artifacts
+          flutter build apk --debug 2>&1 | tee artifacts/apk-build.log
+
+      - name: Run on Android emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        env:
+          ANDROID_I_WANT_MY_TCG: "yes"
+        with:
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          api-level: 34
+          target: default
+          arch: x86_64
+          profile: pixel_2
+          emulator-boot-timeout: 900
+          disable-animations: true
+          script: >-
+            bash -euo pipefail -c 'cd apps/flutter; mkdir -p artifacts; cleanup(){ timeout 15s adb logcat -d > artifacts/logcat.txt 2>&1 || true; timeout 15s adb exec-out screencap -p > artifacts/final-screen.png 2>&1 || true; }; trap cleanup EXIT; adb uninstall com.nipun.finance.fno >/dev/null 2>&1 || true; adb install build/app/outputs/flutter-apk/app-debug.apk; adb shell monkey -p com.nipun.finance.fno 1; sleep 6; adb exec-out screencap -p > artifacts/installed-app-launch.png; flutter test integration_test -d emulator-5554 --reporter expanded 2>&1 | tee artifacts/integration-test.log'
+      - name: Upload emulator diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fno-players-android-e2e-${{ github.run_id }}
+          path: apps/flutter/artifacts/
+          if-no-files-found: warn
+          retention-days: 7
