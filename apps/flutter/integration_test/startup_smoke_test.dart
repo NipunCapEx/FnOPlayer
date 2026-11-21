@@ -16,7 +16,13 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Firebase setup required'), findsOneWidget);
-      expect(find.text('FnO Players'), findsOneWidget);
+      expect(
+        find.textContaining(
+          'needs its own Firebase Android app and Google sign-in configuration',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Continue with Google'), findsNothing);
       expect(tester.takeException(), isNull);
     },
   );
